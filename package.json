@@ -53,12 +53,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://bitbucket.org/quintiles/jsviz-visualisations.git"
+    "url": "git+https://github.com/pete-thompson/spotfire-visuals.git"
   },
   "author": "Pete Thommpson",
-  "license": "SEE LICENSE IN license.txt",
+  "license": "SEE LICENSE",
   "private": true,
-  "homepage": "https://bitbucket.org/quintiles/jsviz-visualisations#readme",
+  "homepage": "https://github.com/pete-thompson/spotfire-visuals",
   "browserslist": [
     "last 3 versions"
   ]
