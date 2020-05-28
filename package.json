@@ -1,0 +1,65 @@
+{
+  "name": "jsviz-visualisations",
+  "version": "1.0.0",
+  "description": "A set of custom visualisations using JSViz",
+  "dependencies": {
+    "colorjoe": "^2.0.0",
+    "d3": "^4.7.3",
+    "d3-cloud": "^1.2.4",
+    "d3-color": "^1.0.3",
+    "d3-drag": "^1.1.1",
+    "d3-force": "^1.0.6",
+    "d3-sankey": "^0.12.1",
+    "d3-scale": "^1.0.5",
+    "d3-selection": "^1.0.5",
+    "d3-shape": "^1.2.0",
+    "d3-transition": "^1.0.4",
+    "d3-zoom": "^1.5.0",
+    "eve": "^0.5.4",
+    "imagesloaded": "^4.1.1",
+    "jquery": "^3.2.0",
+    "jquery-ui": "^1.12.1",
+    "jquery.shorten": "^1.0.0",
+    "just-gauge": "0.0.1",
+    "raphael": "^2.2.7",
+    "underscore": "^1.8.3"
+  },
+  "devDependencies": {
+    "clean-webpack-plugin": "^2.0.1",
+    "css-loader": "^2.1.1",
+    "eslint": "^5.16.0",
+    "eslint-config-standard": "^12.0.0",
+    "eslint-loader": "^2.1.2",
+    "eslint-plugin-compat": "^3.1.1",
+    "eslint-plugin-import": "^2.16.0",
+    "eslint-plugin-node": "^8.0.1",
+    "eslint-plugin-promise": "^4.1.1",
+    "eslint-plugin-standard": "^4.0.0",
+    "expose-loader": "^0.7.5",
+    "file-loader": "^3.0.1",
+    "script-loader": "^0.7.2",
+    "style-loader": "^0.23.1",
+    "terser-webpack-plugin": "^1.2.3",
+    "url-loader": "^1.1.2",
+    "webpack": "^4.29.6",
+    "webpack-cli": "^3.3.0",
+    "webpack-merge": "^4.2.1"
+  },
+  "scripts": {
+    "build:dev": "webpack --env=dev --progress --watch",
+    "build:prod": "webpack --env=prod --progress",
+    "eslint": "eslint lib/*.js visuals/*.js",
+    "eslintfix": "eslint lib/*.js visuals/*.js --fix"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://bitbucket.org/quintiles/jsviz-visualisations.git"
+  },
+  "author": "Pete Thommpson",
+  "license": "SEE LICENSE IN license.txt",
+  "private": true,
+  "homepage": "https://bitbucket.org/quintiles/jsviz-visualisations#readme",
+  "browserslist": [
+    "last 3 versions"
+  ]
+}

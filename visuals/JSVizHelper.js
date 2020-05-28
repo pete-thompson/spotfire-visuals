@@ -1,0 +1,45 @@
+// Simple entry point for web pack that will expose JSVizHelper for global use
+// We can then use this packed version to write simple JS directly inside Spotfire
+
+var JSVizHelper = require('../lib/JSVizHelper.js')
+
+// Include all of JQuery UI
+require('jquery-ui/ui/widgets/accordion')
+require('jquery-ui/ui/widgets/autocomplete')
+require('jquery-ui/ui/widgets/button')
+require('jquery-ui/ui/widgets/checkboxradio')
+require('jquery-ui/ui/widgets/controlgroup')
+require('jquery-ui/ui/widgets/datepicker')
+require('jquery-ui/ui/widgets/dialog')
+require('jquery-ui/ui/widgets/draggable')
+require('jquery-ui/ui/widgets/droppable')
+require('jquery-ui/ui/widgets/menu')
+require('jquery-ui/ui/widgets/mouse')
+require('jquery-ui/ui/widgets/progressbar')
+require('jquery-ui/ui/widgets/resizable')
+require('jquery-ui/ui/widgets/selectable')
+require('jquery-ui/ui/widgets/selectmenu')
+require('jquery-ui/ui/widgets/slider')
+require('jquery-ui/ui/widgets/sortable')
+require('jquery-ui/ui/widgets/spinner')
+require('jquery-ui/ui/widgets/tabs')
+require('jquery-ui/ui/widgets/tooltip')
+require('jquery-ui/ui/effects/effect-blind')
+require('jquery-ui/ui/effects/effect-bounce')
+require('jquery-ui/ui/effects/effect-clip')
+require('jquery-ui/ui/effects/effect-drop')
+require('jquery-ui/ui/effects/effect-explode')
+require('jquery-ui/ui/effects/effect-fade')
+require('jquery-ui/ui/effects/effect-fold')
+require('jquery-ui/ui/effects/effect-highlight')
+require('jquery-ui/ui/effects/effect-puff')
+require('jquery-ui/ui/effects/effect-pulsate')
+require('jquery-ui/ui/effects/effect-scale')
+require('jquery-ui/ui/effects/effect-shake')
+require('jquery-ui/ui/effects/effect-size')
+require('jquery-ui/ui/effects/effect-slide')
+require('jquery-ui/ui/effects/effect-transfer')
+
+require('jquery-ui/themes/base/all.css')
+
+window.JSVizHelper = JSVizHelper
