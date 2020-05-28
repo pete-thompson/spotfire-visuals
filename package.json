@@ -17,7 +17,7 @@
     "d3-zoom": "^1.5.0",
     "eve": "^0.5.4",
     "imagesloaded": "^4.1.1",
-    "jquery": "^3.2.0",
+    "jquery": "^3.5.0",
     "jquery-ui": "^1.12.1",
     "jquery.shorten": "^1.0.0",
     "just-gauge": "0.0.1",
