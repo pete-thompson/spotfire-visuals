@@ -121,7 +121,7 @@ function processSpotfireRequest () {
   renderCore(sfdata)
 }
 
-// Add a button on the page that simulates changing between light and dark themes
+// Add buttons on the page that simulate changing between light and dark themes, enables/disables legends, randomizing data and switching to web player mode
 $().ready(function () {
   var testButtons = $('<div>').appendTo('body')
     .css('position', 'absolute')
@@ -169,6 +169,16 @@ $().ready(function () {
       })
 
       sfdata.data = lastDataData
+
+      renderCore(sfdata)
+    })
+
+  $('<button>').appendTo(testButtons)
+    .text('Toggle configuration on/off')
+    .click(function (e) {
+      e.stopPropagation()
+
+      sfdata.config.disableConfiguration = !sfdata.config.disableConfiguration
 
       renderCore(sfdata)
     })
