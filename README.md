@@ -1,5 +1,10 @@
 # Introduction
 
+[Open this page on GitHub Pages](https://pete-thompson.github.io/spotfire-visuals/) |
+[View the repository](https://github.com/pete-thompson/spotfire-visuals) |
+[![](https://data.jsdelivr.com/v1/package/gh/pete-thompson/spotfire-visuals/badge)](https://www.jsdelivr.com/package/gh/pete-thompson/spotfire-visuals) |
+![Node.js CI](https://github.com/pete-thompson/spotfire-visuals/workflows/Node.js%20CI/badge.svg)
+
 This repository contains various JavaScript based visualisations that can be used with the JSViz extension.
 
 The philosophy behind these visualisations is to make them simple to use and configure - a user shouldn't need to understand JavaScript, HTML, JSON or CSS in order to make use of the charts.
@@ -17,11 +22,11 @@ Secondarily, effort has been placed into making the development process as simpl
 
 # Using the visualisations
 
-More detailed documentation will be placed on the Spotfire Wiki shortly.
+Example Spotfire files demonstrating use of the visualisations can be found [here](https://community.tibco.com/wiki/simple-use-jsviz-visualisations)
 
 # Available visualisations
 
-The data animation custom visualisation can help you animate charts on a page by changing data markings automatically.
+The data animation custom visualisation can help you animate charts on a page by changing data markings automatically. [This link](https://pete-thompson.github.io/spotfire-visuals/Test%20Harness/Tester-AnimateData.html) opens a live 'demo' using our test harness (i.e. without Spotfire)
 
 ![](/images/animated-data.gif)
 
@@ -35,7 +40,7 @@ Gauges and Donuts allow visualisation of a single value using a gauge style pres
 
 The image viewer shows images from URLs in a simple fashion.
 
-![](/images/image-viewer.gif)
+![](/images/image-viewer.GIF)
 
 Force-directed graph visualisations (network charts) are useful for visualising relationships between entities (the example below shows relationships between genes and diseases).
 
