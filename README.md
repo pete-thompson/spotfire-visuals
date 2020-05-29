@@ -1,5 +1,3 @@
-# README #
-
 # Introduction
 
 This repository contains various JavaScript based visualisations that can be used with the JSViz extension.
@@ -17,20 +15,63 @@ Secondarily, effort has been placed into making the development process as simpl
 * Helper scripts handle all the configuration interaction, dealing with common marking scenarios etc.
 * Build scripts have been created to automate the creation of minified packed versions of the visualisation scripts.
 
+# Using the visualisations
+
+More detailed documentation will be placed on the Spotfire Wiki shortly.
+
+# Available visualisations
+
+The data animation custom visualisation can help you animate charts on a page by changing data markings automatically.
+
+![](/images/animated-data.gif)
+
+The Bulleted Lists visualisation allows you to create lists that look like PowerPoint slides containing text.
+
+![](/images/bullet-list.gif)
+
+Gauges and Donuts allow visualisation of a single value using a gauge style presentation.
+
+![](/images/gauges-donuts.gif)
+
+The image viewer shows images from URLs in a simple fashion.
+
+![](/images/image-viewer.gif)
+
+Force-directed graph visualisations (network charts) are useful for visualising relationships between entities (the example below shows relationships between genes and diseases).
+
+![](/images/network.gif)
+
+Radar charts (sometimes called Spider Plots) show attributes of items in a radial fashion. 
+
+![](/images/radar.gif)
+
+A Sankey chart is a type of flow diagram, in which the width of the arrows is shown proportionally to the flow quantity. It is useful to show directional relationships between entities (i.e. where a value 'v' moves from 'a' to 'b'). Common examples include the representation of conversion of energy from one form to another, the loss of some item during a multi-step process, the flow of money between entities or the flow of users through a web site. It can also be used to show the linkage between two types of entity (by using one entity for 'from' and the other for 'to') - e.g. the commonality between review scoring by two different reviewers.
+
+![](/images/sankey.gif)
+
+Word clouds are often used to show how often specific words or phrases appear in a dataset. They can also be used for simple presentation reasons (e.g. to show a list of recent achievements).
+
+![](/images/word-cloud.gif)
+
+# Writing 'simple' JavaScript using the library
+
+It is also easy to write one-off custom visuals using the framework on top of JSViz. The 'JSVizHelper' can be loaded as a script into the JSViz visualisation, providing a simpler API than JSViz itself, along with automatic inclusion of JQuery and JQuery UI.
+
 # Developing
 
 * You'll require Node.js and npm (usually installed with Node.js)
 * From command line execute 'npm install' to install command line utilities for testing.
-* Run 'npm run build:dev' from a command line to set up the build process which will automatically update the files in the /build folder when source files are edited. Any syntax errors or lint failures will be displayed by the build command line.
-* Test using test harnesses within a browser - they will render the version of the visual from the /build folder.
+* Run 'npm run build:dev' from a command line to set up the build process which will automatically update the files in the /dist folder when source files are edited. Any syntax errors or lint failures will be displayed by the build command line.
+* Test using test harnesses within a browser - they will render the version of the visual from the /dist folder.
+* This repository contains configuration files for Visual Studio Code to add tasks for running the builds or executing the test harnesses in Chrome.
 
-# Adding a visualisation
+## Adding a visualisation
 
 * Create new JavaScript file in the visuals folder. At a minimum reference the JSVizHelper and implement call to the SetupViz method - which will require code for rendering.
 * Create new test harness HTML in the Test Harness folder
 * Update webpack-config/base.js to include a new "entry" value for the new file.
 
-# Features of the test harnesses
+## Features of the test harnesses
 
 * Automatically creates DOM elements to house the visualisation - the wrapper HTML script can be very simple.
 * Captures any requests that would normally be sent to the Spotfire servers and writes them to the JavaScript console.
@@ -39,17 +80,17 @@ Secondarily, effort has been placed into making the development process as simpl
 * Adds a button on the page that simulates enabling/disabling the legend.
 * Adds a button on the page that randomises the data being sent to the visualisation (detects any numeric columns and places random values into them).
 
-# Features of JSVizHelper
+## Features of JSVizHelper
 
 * Supports common marking scenarios automatically. It can mark based on clicks/drags on SVG or HTML elements - simply assign a data-id attribute on each element that contains the row's index hint value.
 * Breaks the flow of rendering into 'firstTimeSetup' (intended for creation of elements) and 'render' to actually render data. The 'render' method may be called multiple times if the data changes (e.g. marking, filtering, changing configuration).
 * Provides configuration forms that can be accessed from within Spotfire Analyst.
 
-# Easy example
+## Easy example
 
 Take a look at /visuals/JSVizImageViewer.js - this visualisation simply renders images based on URLs in the data.
 
-# Configuration forms
+## Configuration forms
 
 When you call JSVizHelper from your visualisation you will specify the properties that can be configured, along with header and instructions for the configuration form. Each property has a datatype and caption which dictate the way that the user is prompted. The following attributes of a property are supported:
 * name - the property name - configuration can be referenced as ```config.<name>``` in the render function.

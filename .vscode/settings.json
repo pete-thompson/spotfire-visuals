@@ -13,9 +13,11 @@
         "devtool",
         "eslintfix",
         "imagesloaded",
+        "minified",
         "rendercore",
         "rowdata",
         "selectmenu",
+        "theming",
         "titlebar",
         "zoomer"
     ]
