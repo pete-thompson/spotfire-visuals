@@ -14,7 +14,7 @@ return (
                 "data": [
                   {
                     "items": [
-                      "http://i3.liverpoolecho.co.uk/incoming/article3255920.ece/ALTERNATES/s615b/istanbul-players-460-354749286.jpg"
+                      "../images/animated-data.gif"
                     ],
                     "hints": {
                       "index": 0
@@ -22,11 +22,56 @@ return (
                   },
                   {
                     "items": [
-                      "http://i2.liverpoolecho.co.uk/incoming/article3255919.ece/ALTERNATES/s615b/steven-gerrard-istanbul-460-55126245.jpg"
+                      "../images/bullet-list.gif"
                     ],
                     "hints": {
                       "marked": true,
                       "index": 1
+                    }
+                  },
+                  {
+                    "items": [
+                      "../images/gauges-donuts.gif"
+                    ],
+                    "hints": {
+                      "marked": false,
+                      "index": 2
+                    }
+                  },
+                  {
+                    "items": [
+                      "../images/network.gif"
+                    ],
+                    "hints": {
+                      "marked": false,
+                      "index": 3
+                    }
+                  },
+                  {
+                    "items": [
+                      "../images/radar.gif"
+                    ],
+                    "hints": {
+                      "marked": false,
+                      "index": 4
+                    }
+                  },
+                  {
+                    "items": [
+                      "../images/sankey.gif"
+                    ],
+                    "hints": {
+                      "marked": false,
+                      "index": 5
+                    }
+                  },
+                  {
+                    "items": [
+                      "../images/word-cloud.gif"
+                    ],
+                    "hints": {
+                      "marked": false,
+                      "index": 6
                     }
                   }
                 ],
