@@ -14,6 +14,7 @@ module.exports = function () {
       JSVizBulletList: './visuals/JSVizBulletList.js'
     },
     output: {
+      // eslint-disable-next-line no-undef
       path: path.resolve(__dirname, '../dist'),
       filename: '[name].min.js'
     },
@@ -21,6 +22,7 @@ module.exports = function () {
       rules: [
         { // We want to lint all files in our js folder
           test: /\.js$/,
+          // eslint-disable-next-line no-undef
           include: [ path.resolve(__dirname, '../visuals'), path.resolve(__dirname, '../lib') ],
           loader: 'eslint-loader',
           options: {

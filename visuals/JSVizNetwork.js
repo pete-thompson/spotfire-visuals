@@ -5,7 +5,7 @@ import { event as currentEvent } from 'd3-selection'
 var _ = require('underscore')
 var JSVizHelper = require('../lib/JSVizHelper.js')
 
-var d3 = _.extend({}, require('d3-selection'), require('d3-scale'), require('d3-force'), require('d3-drag'), require('d3-shape'), require('d3-zoom'))
+var d3 = _.extend({}, require('d3-selection'), require('d3-scale'), require('d3-force'), require('d3-drag'), require('d3-shape'), require('d3-zoom'), require('d3-scale-chromatic'))
 
 var $ = require('jquery')
 
@@ -232,7 +232,7 @@ JSVizHelper.SetupViz({
       options: [
         { value: 'all', text: 'All' },
         { value: 'marked', text: 'Only marked nodes' },
-        { value: 'highlighted', text: 'Only highlighed nodes' },
+        { value: 'highlighted', text: 'Only highlighted nodes' },
         { value: 'markedHighlighted', text: 'Marked and highlighted nodes' }
       ]
     },
@@ -394,7 +394,7 @@ function Legend () {
 
     cropBeneathRect.style('fill', function () {
       var background = $('body').css('background-color')
-      return (background === 'rgba(0, 0, 0, 0)' || background === 'tranparent') ? 'white' : background
+      return (background === 'rgba(0, 0, 0, 0)' || background === 'transparent') ? 'white' : background
     })
 
     var fontSize = parseInt(parentSVG.style('font-size'))
@@ -603,7 +603,7 @@ function firstTimeSetup (data, config) {
     .force('forceY', d3.forceY(0).strength(0.01)) // The other part of the hold-to-center force
 
   // colour scale to be used
-  color = d3.scaleOrdinal(d3.schemeCategory20)
+  color = d3.scaleOrdinal(d3.schemeCategory10)
 
   // Shape scale to be used
   shape = d3.scaleOrdinal(d3.symbols)
@@ -636,7 +636,7 @@ function firstTimeSetup (data, config) {
       width: Math.min(500, $('#js_chart').width() - 20),
       title: 'Instructions for the Network Chart',
       buttons: {
-        'OK': function () {
+        OK: function () {
           $(this).dialog('close')
         }
       },
@@ -658,7 +658,7 @@ function firstTimeSetup (data, config) {
    '<ul><li>Fit the network to the visible page by clicking the Fit button.</li>' +
    '<li>Auto fit while the network is generating using the Auto-fit toggle button.</li>' +
    '<li>Zoom in and out using the buttons.</li>' +
-   '<li>Pause/resume the animation using the botton.</li></ul>'
+   '<li>Pause/resume the animation using the button.</li></ul>'
 
   $('<p>')
     .html(instructions)
@@ -697,7 +697,7 @@ function firstTimeSetup (data, config) {
       }
     })
 
-  // Autozoom
+  // Auto zoom
   autoZoomToFit = true
   $('<button>')
     .appendTo(buttonPanel)
@@ -774,7 +774,7 @@ function firstTimeSetup (data, config) {
 
 // Main render method
 function render (data, config) {
-  // Do we need to restart from the begining (e.g. node list changed, forces changed)
+  // Do we need to restart from the beginning (e.g. node list changed, forces changed)
   var restartSimulation = false
 
   // Tell Spotfire we're busy - we'll tell it we're finished when the simulation settles. This helps with exporting and printing
@@ -988,9 +988,9 @@ function render (data, config) {
       window.markIndices(markData)
     })
     .call(d3.drag()
-      .on('start', dragstarted)
+      .on('start', dragStarted)
       .on('drag', dragged)
-      .on('end', dragended))
+      .on('end', dragEnded))
 
   // Update the tooltips
   node.selectAll('path').selectAll('title')
@@ -1043,7 +1043,7 @@ function render (data, config) {
     restartSimulation = true
   }
 
-  // If we need to restart (e.g. differnent nodes, changes to configuration), clear out x, y etc. and start again
+  // If we need to restart (e.g. different nodes, changes to configuration), clear out x, y etc. and start again
   if (restartSimulation) {
     _.each(nodeData, function (d) {
       d.x = d.y = d.vx = d.vy = NaN
@@ -1060,7 +1060,7 @@ function render (data, config) {
         .each(function (d, i, n) {
           // We need to calculate where the edge of the nodes is and use that at the ends of the linkedByIds
           // Otherwise any arrows will be drawn underneath the nodes
-          // We pick a point that is where a cirle would end - looks OK (if not perfect) for a variety of shapes
+          // We pick a point that is where a circle would end - looks OK (if not perfect) for a variety of shapes
           var x1 = d.source.x
           var y1 = d.source.y
           var r1 = sizeScale(d.source.size) / 2
@@ -1115,7 +1115,7 @@ function render (data, config) {
       if (autoZoomToFit) zoomer.zoomToFit()
     })
     .on('end', function () {
-      // We're done - tell Spotfire that we're not busy anymore
+      // We're done - tell Spotfire that we're not busy any more
       JSVizHelper.popBusy('JSVizNetwork')
     })
 
@@ -1124,7 +1124,7 @@ function render (data, config) {
 }
 
 // Allow the user to drag a node
-function dragstarted (d) {
+function dragStarted (d) {
   if (!currentEvent.active && simulationRunning) simulation.alphaTarget(0.3).restart()
   d.fx = d.x
   d.fy = d.y
@@ -1135,7 +1135,7 @@ function dragged (d) {
   d.fy = currentEvent.y
 }
 
-function dragended (d) {
+function dragEnded (d) {
   if (!currentEvent.active && simulationRunning) simulation.alphaTarget(0)
   d.fx = null
   d.fy = null

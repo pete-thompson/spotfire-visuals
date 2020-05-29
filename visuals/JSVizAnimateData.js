@@ -255,7 +255,7 @@ function MarkingHandler (buttonPanel) {
 
         // Send marking request to Spotfire
         positionsWeveMarked.push(indices[position])
-        window.markIndices({ markMode: 'Replace', indexSet: [ indices[position] ] })
+        window.markIndices({ markMode: 'Replace', indexSet: [indices[position]] })
       }
     }
   }

@@ -4,7 +4,7 @@
 var _ = require('underscore')
 var JSVizHelper = require('../lib/JSVizHelper.js')
 
-var d3 = _.extend({}, require('d3-selection'), require('d3-scale'), require('d3-transition'))
+var d3 = _.extend({}, require('d3-selection'), require('d3-scale'), require('d3-transition'), require('d3-scale-chromatic'))
 
 var d3Cloud = require('d3-cloud')
 
@@ -161,7 +161,7 @@ var svgG
 var size
 var parent
 var redrawButton
-var fill = d3.scaleOrdinal(d3.schemeCategory20) // remember the colour used for each word
+var fill = d3.scaleOrdinal(d3.schemeCategory10) // remember the colour used for each word
 
 // Draw the word cloud
 function draw (words) {
@@ -220,7 +220,7 @@ window.onresize = function (event) {
 }
 
 // Recompute the word cloud for a new set of words or after some other change. This method will
-// asycnhronously call draw when the layout has been computed.
+// asynchronously call draw when the layout has been computed.
 function layoutCloud () {
   // We need to copy the data, otherwise the cloud layout stores information in the SpotfireData object that incorrectly caches across rendering events
   // We also use this as an opportunity to see if the only thing that's changing is marking - if so we'll just redraw rather than re-layout
@@ -235,7 +235,7 @@ function layoutCloud () {
       wordsHT[d.items[0]] = { index: i, count: d.items[1] }
       minimum = Math.min(minimum, d.items[1])
       maximum = Math.max(maximum, d.items[1])
-      if (lastLayoutWordsHT.hasOwnProperty(d.items[0])) {
+      if (Object.prototype.hasOwnProperty.call(lastLayoutWordsHT, d.items[0])) {
         lastLayoutWords[lastLayoutWordsHT[d.items[0]].index].marked = d.hints.marked // In case we need to redraw the old layout
         onlyChangeIsMarking = onlyChangeIsMarking && (lastLayoutWordsHT[d.items[0]].count === d.items[1])
       } else {
@@ -259,7 +259,7 @@ function layoutCloud () {
       linear: d3.scaleLinear,
       log: d3.scaleLog,
       sqrt: d3.scaleSqrt
-    }[config.scaleType]().domain([minimum, maximum]).range([ config.minFontSize, config.maxFontSize ])
+    }[config.scaleType]().domain([minimum, maximum]).range([config.minFontSize, config.maxFontSize])
 
     // Now lay it out
     d3Cloud()

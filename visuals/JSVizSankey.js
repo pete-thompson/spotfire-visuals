@@ -6,7 +6,7 @@ import { event as currentEvent } from 'd3-selection'
 var _ = require('underscore')
 var JSVizHelper = require('../lib/JSVizHelper.js')
 
-var d3 = _.extend({}, require('d3-array'), require('d3-color'), require('d3-collection'), require('d3-drag'), require('d3-format'), require('d3-path'), require('d3-sankey'), require('d3-scale'), require('d3-selection'), require('d3-shape'), require('d3-zoom'))
+var d3 = _.extend({}, require('d3-array'), require('d3-color'), require('d3-collection'), require('d3-drag'), require('d3-format'), require('d3-path'), require('d3-sankey'), require('d3-scale'), require('d3-selection'), require('d3-shape'), require('d3-zoom'), require('d3-scale-chromatic'))
 
 var $ = require('jquery')
 
@@ -260,7 +260,7 @@ function render (data, config) {
   var colourDomain = _.uniq(_.map(nodeData, d => d.colour))
 
   var colour = function (colour) {
-    return d3.scaleOrdinal(d3.schemeCategory20).domain(colourDomain)(colour)
+    return d3.scaleOrdinal(d3.schemeCategory10).domain(colourDomain)(colour)
   }
 
   // Now draw the charts

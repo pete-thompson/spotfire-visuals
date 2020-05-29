@@ -1,4 +1,4 @@
-// Very simple visualisation to display a bulletted list
+// Very simple visualisation to display a bulleted list
 
 var $ = require('jquery')
 var JSVizHelper = require('../lib/JSVizHelper.js')
@@ -153,7 +153,7 @@ function render (data, config) {
     if (dataRow[JSVizHelper.DataMarkedColumn]) {
       span.attr('style', config.markedStyle)
     }
-    span.css('font-size', fontSizes[ Math.min(currentLevel, fontSizes.length) - 1 ])
+    span.css('font-size', fontSizes[Math.min(currentLevel, fontSizes.length) - 1])
     span.attr('data-id', dataRow[JSVizHelper.DataIndexColumn])
   })
 }

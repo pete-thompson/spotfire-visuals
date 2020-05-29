@@ -56,12 +56,11 @@ function render (data, config) {
   data.data.forEach(function (dataRow) {
     if (dataRow.items.length > 0) {
       // Put all the images inside DIVs that can be used for marking borders
-      var div = $('<div>').css({ 'overflow': 'hidden', 'float': 'left'
-      }).appendTo('#js_chart')
+      var div = $('<div>').css({ overflow: 'hidden', float: 'left' }).appendTo('#js_chart')
       var img = $('<img>', {
         src: dataRow.items[0],
         'data-id': dataRow.hints.index,
-        'style': config.imageStyle
+        style: config.imageStyle
       }).appendTo(div)
         .imagesLoaded(function () {
         // We can only do this once the image loads, otherwise the width/height return 0
@@ -70,14 +69,14 @@ function render (data, config) {
             var borderWidthPx = config.markingBorderWidth
             var borderColor = config.markingBorderColor
             div.css({
-              'width': (img.outerWidth(true) - 2 * borderWidthPx) + 'px',
-              'height': (img.outerHeight(true) - 2 * borderWidthPx) + 'px',
-              'border': 'solid ' + borderWidthPx + 'px ' + borderColor
+              width: (img.outerWidth(true) - 2 * borderWidthPx) + 'px',
+              height: (img.outerHeight(true) - 2 * borderWidthPx) + 'px',
+              border: 'solid ' + borderWidthPx + 'px ' + borderColor
             })
             img.css({
-              'top': -1 * borderWidthPx + 'px',
-              'left': -1 * borderWidthPx + 'px',
-              'position': 'relative'
+              top: -1 * borderWidthPx + 'px',
+              left: -1 * borderWidthPx + 'px',
+              position: 'relative'
             })
           }
         })
