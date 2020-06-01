@@ -1,6 +1,7 @@
 /* global initMarking, renderCore, sfdata:true, $, lastConfig:true, getTestData */
 // A test harness for JSViz based visualisation testing
 // Simulates Spotfire behaviour in the browser
+
 // Grabs test data by calling getTestData() - so when including this on the page also include a function that returns the JSON data obtained from Spotfire during testing
 var sfdata
 // Remember the state of the configuration so we can adjust when calls are made to change configuration
@@ -43,6 +44,40 @@ window.JSViz = {
     major: 3,
     minor: 5
   }
+}
+
+// A dialog for our UI components
+var testerDialog = $('<div>').appendTo('body')
+
+var logDiv = $('<div>').appendTo(testerDialog)
+  .css('height', '100%')
+  .css('width', '100%')
+  .css('overflow', 'auto')
+
+testerDialog.dialog({
+  draggable: true,
+  resizable: true,
+  width: 500,
+  height: 300,
+  title: 'Test harness',
+  position: { my: 'right bottom', at: 'right bottom', of: window },
+  open: function (event, ui) { $('.ui-dialog-titlebar-close').hide() }
+})
+
+testerDialog.dialog('widget').mousedown(function (event) {
+  // Stop JSViz from marking when we interact with the dialog
+  event.stopPropagation()
+})
+
+// Capture console logging
+var oldConsoleLog = console.log
+console.log = function () {
+  oldConsoleLog(arguments)
+  var msg = ''
+  $.each(arguments, function (i, arg) {
+    msg += arg
+  })
+  logDiv.append('<div>' + msg + '</div>')
 }
 
 window.Spotfire = {
@@ -123,15 +158,11 @@ function processSpotfireRequest () {
 
 // Add buttons on the page that simulate changing between light and dark themes, enables/disables legends, randomizing data and switching to web player mode
 $().ready(function () {
-  var testButtons = $('<div>').appendTo('body')
+  var testButtons = $('<div>').appendTo(testerDialog)
     .css('position', 'absolute')
     .css('left', '0')
     .css('bottom', '0')
     .css('z-index', 999)
-    .mousedown(function (event) {
-      // Stop JSViz from marking when we click the button
-      event.stopPropagation()
-    })
 
   $('<button>').appendTo(testButtons)
     .text('Switch theme')
