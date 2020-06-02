@@ -27,42 +27,42 @@ Example Spotfire files demonstrating use of the visualisations can be found [her
 # Available visualisations
 
 The data animation custom visualisation can help you animate charts on a page by changing data markings automatically.
-[This link](https://pete-thompson.github.io/spotfire-visuals/Test%20Harness/Tester-AnimateData.html) opens a live 'demo' using our test harness (i.e. without Spotfire)
+[This link](https://pete-thompson.github.io/spotfire-visuals/Test%20Harness/Tester-AnimateData.html) opens a live 'demo' using our test harness (i.e. without Spotfire).
 
 ![](/images/animated-data.gif)
 
 The Bulleted Lists visualisation allows you to create lists that look like PowerPoint slides containing text.
-[This link](https://pete-thompson.github.io/spotfire-visuals/Test%20Harness/Tester-BulletList.html) opens a live 'demo' using our test harness (i.e. without Spotfire)
+[This link](https://pete-thompson.github.io/spotfire-visuals/Test%20Harness/Tester-BulletList.html) opens a live 'demo' using our test harness (i.e. without Spotfire).
 
 ![](/images/bullet-list.gif)
 
 Gauges and Donuts allow visualisation of a single value using a gauge style presentation.
-[This link](https://pete-thompson.github.io/spotfire-visuals/Test%20Harness/Tester-JustGage.html) opens a live 'demo' using our test harness (i.e. without Spotfire)
+[This link](https://pete-thompson.github.io/spotfire-visuals/Test%20Harness/Tester-JustGage.html) opens a live 'demo' using our test harness (i.e. without Spotfire).
 
 ![](/images/gauges-donuts.gif)
 
 The image viewer shows images from URLs in a simple fashion.
-[This link](https://pete-thompson.github.io/spotfire-visuals/Test%20Harness/Tester-ImageViewer.html) opens a live 'demo' using our test harness (i.e. without Spotfire)
+[This link](https://pete-thompson.github.io/spotfire-visuals/Test%20Harness/Tester-ImageViewer.html) opens a live 'demo' using our test harness (i.e. without Spotfire).
 
 ![](/images/image-viewer.GIF)
 
 Force-directed graph visualisations (network charts) are useful for visualising relationships between entities (the example below shows relationships between genes and diseases).
-[This link](https://pete-thompson.github.io/spotfire-visuals/Test%20Harness/Tester-Network.html) opens a live 'demo' using our test harness (i.e. without Spotfire)
+[This link](https://pete-thompson.github.io/spotfire-visuals/Test%20Harness/Tester-Network.html) opens a live 'demo' using our test harness (i.e. without Spotfire).
 
 ![](/images/network.gif)
 
 Radar charts (sometimes called Spider Plots) show attributes of items in a radial fashion. 
-[This link](https://pete-thompson.github.io/spotfire-visuals/Test%20Harness/Tester-RadarChart.html) opens a live 'demo' using our test harness (i.e. without Spotfire)
+[This link](https://pete-thompson.github.io/spotfire-visuals/Test%20Harness/Tester-RadarChart.html) opens a live 'demo' using our test harness (i.e. without Spotfire).
 
 ![](/images/radar.gif)
 
 A Sankey chart is a type of flow diagram, in which the width of the arrows is shown proportionally to the flow quantity. It is useful to show directional relationships between entities (i.e. where a value 'v' moves from 'a' to 'b'). Common examples include the representation of conversion of energy from one form to another, the loss of some item during a multi-step process, the flow of money between entities or the flow of users through a web site. It can also be used to show the linkage between two types of entity (by using one entity for 'from' and the other for 'to') - e.g. the commonality between review scoring by two different reviewers.
-[This link](https://pete-thompson.github.io/spotfire-visuals/Test%20Harness/Tester-Sankey.html) opens a live 'demo' using our test harness (i.e. without Spotfire)
+[This link](https://pete-thompson.github.io/spotfire-visuals/Test%20Harness/Tester-Sankey.html) opens a live 'demo' using our test harness (i.e. without Spotfire).
 
 ![](/images/sankey.gif)
 
 Word clouds are often used to show how often specific words or phrases appear in a dataset. They can also be used for simple presentation reasons (e.g. to show a list of recent achievements).
-[This link](https://pete-thompson.github.io/spotfire-visuals/Test%20Harness/Tester-WordCloud.html) opens a live 'demo' using our test harness (i.e. without Spotfire)
+[This link](https://pete-thompson.github.io/spotfire-visuals/Test%20Harness/Tester-WordCloud.html) opens a live 'demo' using our test harness (i.e. without Spotfire).
 
 ![](/images/word-cloud.gif)
 
