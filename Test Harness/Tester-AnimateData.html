@@ -10,5 +10,26 @@
     <script type="text/javascript" src="../test-data/AnimateData.js"></script>
 
     <script type="text/javascript" src="test-harness.js"></script>
+
+    <div style='width: 100%; height: 50px; top: 100px; position: absolute; font-size: large'>
+      <p>
+        In this test harness, we have simulated a 1 second delay to marking requests, so the value displayed here will always be slightly
+        behind the value in the animation controller.
+        This simulates the delay incurred between requesting an update to a marking and when Spotfire updates to reflect the new marking.
+      </p>
+      <p>
+        Year: <span id='year'></span>
+      </p>
+    </div>
+
+    <script>
+      window.TestHarness.AddMarkingCallback(function(sfData) {
+        sfData.data.forEach(function(d) {
+          if (d.hints.marked) {
+            $('#year').text(d.items[0])
+          }
+        })
+      })
+    </script>
   </body>
 </html>
