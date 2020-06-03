@@ -14,6 +14,7 @@ This is achieved (as far as possible) through the following common features:
 * Each visualisation allows for configuration within Spotfire Analyst using a form generated through JQueryUI, rather than requiring the user to write any JavaScript or enter JSON data.
 * The visualisations automatically load and render when added to JSViz - again there's no need to write any HTML, JavaScript etc.
 * Visualisations attempt to respond to Spotfire themes, removing the need to edit CSS.
+* Where possible, the visualisations support standard Spotfire functionality such as marking data, showing tooltips, legends and labels.
 
 Secondarily, effort has been placed into making the development process as simple as possible:
 * A test harness has been created that supports testing responses to marking events, theming etc.
