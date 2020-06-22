@@ -1,14 +1,10 @@
-/* global JustGage */
 // A visualisation that show gauges
 // Wraps the JustGage library
 
 var JSVizHelper = require('../lib/JSVizHelper.js')
 var _ = require('underscore')
 
-// JustGage isn't a true module. It requires that Raphael be globally defined and then defines itself globally
-window.Raphael = require('raphael')
-window.eve = window.Raphael.eve
-require('just-gauge')
+var JustGage = require('justgage')
 
 var $ = require('jquery')
 
@@ -20,6 +16,7 @@ var defaultConfig = {
   donut: false,
   title: '',
   titleFontColor: '#999999',
+  titleFontSize: '15',
   label: '',
   labelFontColor: '#b3b3b3',
   hideValue: false,
@@ -78,6 +75,17 @@ JSVizHelper.SetupViz({
       caption: 'Title color (titleFontColor)',
       type: 'color',
       name: 'titleFontColor'
+    },
+    {
+      tab: 'Main',
+      caption: 'Title font size (titleFontSize',
+      type: 'number',
+      name: 'titleFontSize',
+      inputAttributes: {
+        min: 1,
+        max: Infinity,
+        step: 1
+      }
     },
     {
       tab: 'Main',
@@ -372,10 +380,11 @@ function render (data, config) {
       gaugeConfig.levelColors = []
     }
     if (gaugeConfig.customSectors.length > 0) {
-      gaugeConfig.customSectors = _.map(gaugeConfig.customSectors.split(';'), function (piece) {
+      var ranges = _.map(gaugeConfig.customSectors.split(';'), function (piece) {
         var pieces = piece.split(',')
         return { lo: Number(pieces[0]), hi: Number(pieces[1]), color: pieces[2] }
       })
+      gaugeConfig.customSectors = { percents: false, ranges: ranges }
     } else {
       gaugeConfig.customSectors = []
     }
@@ -390,7 +399,18 @@ function render (data, config) {
       .css('max-width', gaugeConfig.maxGaugeWidth + 'px')
       .css('max-height', gaugeConfig.maxGaugeHeight + 'px')
       .attr('class', 'iqvia-mark-rect')
+      .css('position', 'relative')
       .css('opacity', (row.hints.marked || data.baseTableHints.marked === 0) ? '1' : '0.1')
+
+    $('<div>').appendTo(newDiv)
+      .text(gaugeConfig.title)
+      .css('position', 'absolute')
+      .css('top', '20px')
+      .css('width', '100%')
+      .css('text-align', 'center')
+      .css('font-size', gaugeConfig.titleFontSize + 'px')
+      .css('font-weight', 'bold')
+      .css('color', gaugeConfig.titleFontColor)
 
     // Create a gauge inside the new Div
     gaugeConfig.parentNode = newDiv[0]
