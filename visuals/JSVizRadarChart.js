@@ -173,6 +173,22 @@ JSVizHelper.SetupViz({
   ]
 })
 
+function asDataInColumns (data, cfg) {
+  var groups = _.groupBy(data, cfg.legendColumn)
+  return _.map(groups, function (group, groupKey) {
+    var newRow = {}
+    newRow[cfg.legendColumn] = groupKey
+    newRow[dataIndexMapColumn] = {}
+    _.each(group, function (originalRow) {
+      var axisKey = originalRow[cfg.axisColumn]
+      var val = originalRow[cfg.valueColumn]
+      newRow[axisKey] = val
+      newRow[dataIndexMapColumn][axisKey] = originalRow[JSVizHelper.DataIndexColumn]
+    })
+    return newRow
+  })
+}
+
 function firstTimeSetup (data, config) {
   defaultConfig.legendColumn = data.columns[0]
 }
@@ -199,6 +215,11 @@ function render (data, config) {
 
   // Simplify how we deal with the data
   var d = JSVizHelper.DataAsNamedArray(data, true)
+
+  let additionalData = []
+  if (data.additionalTables) {
+    additionalData = data.additionalTables.map(function (table) { return JSVizHelper.DataAsNamedArray(table, false) })
+  }
 
   var showLegend = data.legend
 
@@ -227,21 +248,8 @@ function render (data, config) {
   if (!cfg.valuesInColumns) {
     if (cfg.axisColumn.length === 0) cfg.axisColumn = d3.keys(d[0])[1]
     if (cfg.valueColumn.length === 0) cfg.valueColumn = d3.keys(d[0])[2]
-    var oldData = d
-    d = []
-    var groups = _.groupBy(oldData, cfg.legendColumn)
-    _.each(groups, function (group, groupKey) {
-      var newRow = {}
-      newRow[cfg.legendColumn] = groupKey
-      newRow[dataIndexMapColumn] = {}
-      _.each(group, function (originalRow) {
-        var axisKey = originalRow[cfg.axisColumn]
-        var val = originalRow[cfg.valueColumn]
-        newRow[axisKey] = val
-        newRow[dataIndexMapColumn][axisKey] = originalRow[JSVizHelper.DataIndexColumn]
-      })
-      d.push(newRow)
-    })
+    d = asDataInColumns(d, cfg)
+    additionalData = additionalData.map(function (table) { return asDataInColumns(table, cfg) })
   } else {
     // Build the data index array column to repeat the data ID for the row for each column
     // This array holds the index of each of the individual data elements associated with each chart point, but for row data they're all the same
@@ -266,18 +274,32 @@ function render (data, config) {
   if (cfg.useZeroOrigin) {
     cfg.minValue = 0
   } else {
-    cfg.minValue = Math.min(cfg.minValue, d3.min(d, function (row) {
+    cfg.minValue = d3.min([cfg.minValue, d3.min(d, function (row) {
       return d3.min(cfg.axisColumns.map(function (axis) {
-        return row[axis]
+        return +row[axis]
       }))
-    }))
+    }), d3.min(additionalData, function (table) {
+      // Search additional tables
+      return d3.min(table, function (row) {
+        return d3.min(cfg.axisColumns.map(function (axis) {
+          return +row[axis]
+        }))
+      })
+    })])
   }
   // always make sure the max is at least one more than the min
-  cfg.maxValue = Math.max(cfg.maxValue, Math.max(cfg.minValue + 1, d3.max(d, function (row) {
+  cfg.maxValue = d3.max([cfg.maxValue, Math.max(cfg.minValue + 1, d3.max(d, function (row) {
     return d3.max(cfg.axisColumns.map(function (axis) {
       return +row[axis]
     }))
-  })))
+  })), d3.max(additionalData, function (table) {
+    // Search additional tables
+    return d3.max(table, function (row) {
+      return d3.max(cfg.axisColumns.map(function (axis) {
+        return +row[axis]
+      }))
+    })
+  })])
 
   // Calculate the position of the chart
   var radius = Math.min((cfg.w - cfg.legendPosition) / 2 - cfg.spaceForAxisTitleX - cfg.centerSpace, cfg.h / 2 - cfg.spaceForAxisTitleY - cfg.centerSpace)
@@ -289,9 +311,14 @@ function render (data, config) {
   // Determine the min and max values to use for each axis
   var minForAxis = (cfg.axisColumns.map(function (axisName) {
     if (!cfg.singleAxisScale && !cfg.useZeroOrigin) {
-      return d3.min(d.map(function (dataRow) {
+      return d3.min([d3.min(d.map(function (dataRow) {
         return +dataRow[axisName]
-      }))
+      })), d3.min(additionalData, function (table) {
+        // Search additional tables
+        return d3.min(table, function (row) {
+          return +row[axisName]
+        })
+      })])
     } else {
       return cfg.minValue
     }
@@ -299,9 +326,14 @@ function render (data, config) {
   var maxForAxis = (cfg.axisColumns.map(function (axisName, axisNumber) {
     if (!cfg.singleAxisScale) {
       // always make sure the max is at least one more than the min
-      return Math.max(minForAxis[axisNumber] + 1, d3.max(d.map(function (dataRow) {
+      return d3.max([minForAxis[axisNumber] + 1, d3.max(d.map(function (dataRow) {
         return +dataRow[axisName]
-      })))
+      })), d3.max(additionalData, function (table) {
+        // Search additional tables
+        return d3.max(table, function (row) {
+          return +row[axisName]
+        })
+      })])
     } else {
       return cfg.maxValue
     }
