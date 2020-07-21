@@ -76,7 +76,7 @@ JSVizHelper.SetupViz({
       tab: 'Axes'
     },
     {
-      caption: "Numeric format definition when showing the value for a link/node. Formats are specified using D3's library (<a href='https://github.com/d3/d3-format'>here</a>)",
+      caption: "Numeric format definition when showing the value for a link/node. Formats are specified using D3's library (<a href='https://github.com/d3/d3-format' target='_blank'>here</a>)",
       type: 'text',
       name: 'valueFormat',
       tab: 'Axes'
