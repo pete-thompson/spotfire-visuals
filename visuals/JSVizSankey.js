@@ -426,7 +426,7 @@ function render (data, config) {
   link.merge(linkEnter)
     .style('mix-blend-mode', 'multiply')
     .attr('stroke', d => config.linkColour === 'none' ? '#aaa'
-      : config.linkColour === 'inputToOutput' ? 'url(#link-gradient-' + d.index + ')'
+      : config.linkColour === 'inputToOutput' ? 'url(#link-gradient-' + linkUniqueIds.get(d.id) + ')'
         : config.linkColour === 'input' ? colour(d.source.colour)
           : colour(d.target.colour))
     .sort((a, b) => b.width - a.width)
