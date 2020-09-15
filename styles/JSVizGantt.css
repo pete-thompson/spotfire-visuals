@@ -1,0 +1,122 @@
+/* Styling for sections to induce proper table-like behavior */
+.sectionHeader {
+    color: white;
+    background-color: rgb(35, 151, 221);
+    display: flex;
+    align-items: center;
+    margin-bottom: 2px;
+}
+.event {
+    display: flex;
+    align-items: center;
+}
+.sectionHeader > .title {
+    font-weight: bold;
+}
+.expandCollapse {
+    flex-shrink: 0;
+    width: 20px;
+    margin-left: 5px;
+}
+.title {
+    flex-shrink: 0;
+}
+.timeline {
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+/* Carets for expand/collapse */
+.caret {
+    width: 0;
+    height: 0;
+    display: inline-block;
+    border: 4px solid transparent;
+}
+
+.caretDown {
+    border-top-color: black;
+    margin-top: 4px;
+}
+.caretRight {
+    border-left-color: black;
+    margin-left: 2px;
+}
+
+/* Expand/collapse section content */
+.sectionContent.expanded {
+    display: block;
+}
+.sectionContent.collapsed {
+    display: none;
+}
+
+/* Colours  */
+
+.Green {
+    color: green;
+    fill: green;
+    stroke: green;
+}
+.Red {
+    color: red;
+    fill: red;
+    stroke: red;
+}
+.Black {
+    color: black;
+    fill: black;
+    stroke: black;
+}
+.Blue {
+    color: blue;
+    fill: blue;
+    stroke: blue;
+}
+
+/* Line */
+.Solid {
+    stroke-width: 1;
+    stroke: black;
+}
+
+/* Markers */
+.None {
+    display: none;
+}
+
+.Square {
+    d: path('M-0.5,-0.5 h 1 v 1 h -1 Z');
+    stroke-width: 0px;
+}
+
+.Circle {
+    d: path('M -0.5,0 a 0.5,0.5 0 1,0 1,0 a 0.5,0.5 0 1,0 -1,0');
+    stroke-width: 0px;
+}
+
+.WedgeStart {
+    d: path('M 0,-0.5 L 0.5,0 L 0,0.5 Z');
+    stroke-width: 0px;
+}
+
+.WedgeEnd {
+    d: path('M 0,-0.5 L -0.5,0 L 0,0.5 Z');
+    stroke-width: 0px;
+}
+
+.VerticalLine {
+    d: path('M 0,0.5 v -1');
+    stroke-width: 1px;
+    vector-effect: non-scaling-stroke;
+}
+
+.Cross {
+    d: path('M -0.5,0.1 h 0.4 v -0.4 h 0.2 v 0.4 h 0.4 v 0.2 h -0.4 v 0.4 h -0.2 v -0.4 h -0.4 Z');
+    stroke-width: 0px;
+}
+
+.Star {
+    d: path('M 0 0.25 L 0.29389 0.40451 L 0.23776 0.0725 L 0.47553 -0.15451 L 0.14695 -0.20225 L 0 -0.5 L -0.14695 -0.20225 L -0.47553 -0.15451 L -0.23776 0.07725 L -0.29389 0.40451 L 0 0.25');
+    stroke-width: 0px;
+}
