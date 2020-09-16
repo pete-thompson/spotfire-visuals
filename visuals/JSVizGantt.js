@@ -3,12 +3,10 @@
 
 import { event as currentEvent } from 'd3-selection'
 
-var _ = require('underscore')
-var JSVizHelper = require('../lib/JSVizHelper.js')
-var d3 = _.extend({}, require('d3-array'), require('d3-axis'), require('d3-format'), require('d3-scale'), require('d3-selection'), require('d3-shape'), require('d3-time-format'))
-var moment = require('moment')
-
-var $ = require('jquery')
+const _ = require('underscore')
+const JSVizHelper = require('../lib/JSVizHelper.js')
+const d3 = _.extend({}, require('d3-array'), require('d3-axis'), require('d3-format'), require('d3-scale'), require('d3-selection'), require('d3-shape'), require('d3-time-format'))
+const moment = require('moment')
 
 // Include our stylesheet
 require('../styles/JSVizGantt.css')
@@ -28,7 +26,7 @@ const timelineMargin = 20
 const levelIndent = 20
 const titleWidth = 150
 
-var defaultConfig = {
+const defaultConfig = {
   eventIdColumn: 0,
   eventNameColumn: 1,
   eventStartColumn: 2,
@@ -48,6 +46,7 @@ var defaultConfig = {
 
 JSVizHelper.SetupViz({
   defaultConfig: defaultConfig,
+  configButton: JSVizHelper.configButton.gearRight,
   firstTimeSetup: firstTimeSetup,
   render: render,
   configuratorTitle: 'Gantt options',
@@ -166,7 +165,8 @@ JSVizHelper.SetupViz({
 
 // Called the first time (and only the first time) we render
 function firstTimeSetup (data, config) {
-  $('#js_chart').css('overflow-x', 'hidden')
+  // Ensure no scrollbars
+  d3.select('#js_chart').style('overflow-x', 'hidden')
 }
 
 //
@@ -189,16 +189,16 @@ function render (data, config) {
   }
 
   // Find the earliest and latest dates (the extent)
-  var extents = [config.eventStartColumn, config.eventEndColumn]
+  const extents = [config.eventStartColumn, config.eventEndColumn]
     .map(columnNumber => d3.extent(data.data, d => xAxisValue(d.items[columnNumber])))
 
   // use the zoom level as part of the extent
-  var extent = [d3.min(extents, d => moment(d[0]).startOf(config.currentZoomLevel).valueOf()), d3.max(extents, d => moment(d[1]).endOf(config.currentZoomLevel).valueOf())]
+  const extent = [d3.min(extents, d => moment(d[0]).startOf(config.currentZoomLevel).valueOf()), d3.max(extents, d => moment(d[1]).endOf(config.currentZoomLevel).valueOf())]
 
   // Create an x axis scaled based on zoom level.
-  var range = moment.duration(moment(extent[1]).diff(moment(extent[0])))
-  var size = Math.round(range.as(config.currentZoomLevel))
-  var timeScale = d3.scaleTime()
+  const range = moment.duration(moment(extent[1]).diff(moment(extent[0])))
+  const size = Math.round(range.as(config.currentZoomLevel))
+  const timeScale = d3.scaleTime()
     .domain(extent)
     .range([0, size * config.zoomLevelItemSize])
 
@@ -261,7 +261,7 @@ function render (data, config) {
 
   // Helper for creating a row (event or section)
   const createRow = (selection, rowClass) => {
-    var row = selection.append('div').classed(rowClass, true)
+    const row = selection.append('div').classed(rowClass, true)
     row.append('div').classed('expandCollapse', true)
     row.append('div').classed('title', true)
     row.append('div').classed('timeline', true)
@@ -287,7 +287,7 @@ function render (data, config) {
   // Create each section in a selection (recursively calls for hierarchical sections)
   const createSections = (selection) => {
     selection = selection.join(enter => {
-      var section = enter.append('div').classed('section', true)
+      const section = enter.append('div').classed('section', true)
       createRow(section, 'sectionHeader')
       section.append('div').classed('sectionContent', true)
       return section
@@ -302,7 +302,7 @@ function render (data, config) {
   }
 
   // Create the top level sections (which recursively adds subsections)
-  var sections = d3.select('#js_chart')
+  const sections = d3.select('#js_chart')
     .selectAll('.section')
     .data(sectionsData)
 
