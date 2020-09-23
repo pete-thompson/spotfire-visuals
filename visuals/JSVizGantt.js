@@ -40,6 +40,7 @@ const defaultConfig = {
   maxZoomLevel: 'day',
   minZoomLevel: 'year',
   zoomLevelItemSize: 50,
+  startAllExpanded: false,
   rowHeight: 60,
   rowPadding: 2
 }
@@ -129,6 +130,12 @@ JSVizHelper.SetupViz({
     },
     {
       tab: 'Layout',
+      caption: 'Start with all sections expanded:',
+      name: 'startAllExpanded',
+      type: 'checkbox'
+    },
+    {
+      tab: 'Layout',
       caption: 'Width of each item at zoom level (e.g. size of a Day at Day level)',
       name: 'zoomLevelItemSize',
       type: 'number',
@@ -176,6 +183,8 @@ function render (data, config) {
   // TODO - support a numeric x-axis as alternative to date
   // TODO - think about animation
   // TODO - zoom in/out buttons
+  // TODO - something more intelligent than blowing it away!
+  d3.select('#js_chart').html('')
 
   // Helper to get X axis values into appropriate form (date or integer (TODO))
   const xAxisValue = val => {
@@ -262,7 +271,7 @@ function render (data, config) {
   // Helper for creating a row (event or section)
   const createRow = (selection, rowClass) => {
     const row = selection.append('div').classed(rowClass, true)
-    row.append('div').classed('expandCollapse', true)
+    row.append('div').classed('expandCollapse', true).append('span').classed('caretDown', config.startAllExpanded).classed('caretRight', !config.startAllExpanded)
     row.append('div').classed('title', true)
     row.append('div').classed('timeline', true)
       .append('svg').attr('width', '100%').attr('height', config.rowHeight + config.rowPadding)
@@ -289,7 +298,10 @@ function render (data, config) {
     selection = selection.join(enter => {
       const section = enter.append('div').classed('section', true)
       createRow(section, 'sectionHeader')
-      section.append('div').classed('sectionContent', true)
+      section.append('div')
+        .classed('sectionContent', true)
+        .classed('expanded', config.startAllExpanded)
+        .classed('collapsed', !config.startAllExpanded)
       return section
     })
 
@@ -309,10 +321,8 @@ function render (data, config) {
   createSections(sections)
 
   // Setup expand/collapse
-  d3.selectAll('.sectionHeader .expandCollapse')
-    .append('span')
+  d3.selectAll('.sectionHeader .expandCollapse > span')
     .classed('caret', true)
-    .classed('caretDown', true)
   d3.selectAll('.sectionHeader')
     .on('click', function (selected) {
       // Use a regular function so that 'this' works
