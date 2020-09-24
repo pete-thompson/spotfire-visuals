@@ -21,6 +21,16 @@ const zoomLevels = [
   { value: 'year', text: 'Year' }
 ]
 
+const xAxisPositions = [
+  { value: 'top', text: 'Top' },
+  { value: 'bottom', text: 'Bottom' },
+  { value: 'both', text: 'Both' }
+]
+
+var xAxisTop
+var xAxisBottom
+var ganttContent
+
 // TODO - make configurable and add elements to allow user to change
 const timelineMargin = 20
 const levelIndent = 20
@@ -40,8 +50,10 @@ const defaultConfig = {
   maxZoomLevel: 'day',
   minZoomLevel: 'year',
   zoomLevelItemSize: 50,
+  tickSeparation: 50,
   startAllExpanded: false,
-  rowHeight: 60,
+  xAxisPosition: 'both',
+  rowHeight: 40,
   rowPadding: 2
 }
 
@@ -130,6 +142,13 @@ JSVizHelper.SetupViz({
     },
     {
       tab: 'Layout',
+      caption: 'X axis position',
+      name: 'xAxisPosition',
+      type: 'select',
+      options: xAxisPositions
+    },
+    {
+      tab: 'Layout',
       caption: 'Start with all sections expanded:',
       name: 'startAllExpanded',
       type: 'checkbox'
@@ -138,6 +157,17 @@ JSVizHelper.SetupViz({
       tab: 'Layout',
       caption: 'Width of each item at zoom level (e.g. size of a Day at Day level)',
       name: 'zoomLevelItemSize',
+      type: 'number',
+      inputAttributes: {
+        min: 1,
+        max: Infinity,
+        step: 1
+      }
+    },
+    {
+      tab: 'Layout',
+      caption: 'Number of pixels between each x axis tick',
+      name: 'tickSeparation',
       type: 'number',
       inputAttributes: {
         min: 1,
@@ -173,7 +203,10 @@ JSVizHelper.SetupViz({
 // Called the first time (and only the first time) we render
 function firstTimeSetup (data, config) {
   // Ensure no scrollbars
-  d3.select('#js_chart').style('overflow-x', 'hidden')
+  const parent = d3.select('#js_chart').style('overflow-x', 'hidden')
+  xAxisTop = parent.append('div').classed('xAxis', true).classed('xAxisTop', true)
+  ganttContent = parent.append('div').classed('ganttContent', true)
+  xAxisBottom = parent.append('div').classed('xAxis', true).classed('xAxisBottom', true)
 }
 
 //
@@ -184,7 +217,9 @@ function render (data, config) {
   // TODO - think about animation
   // TODO - zoom in/out buttons
   // TODO - something more intelligent than blowing it away!
-  d3.select('#js_chart').html('')
+  xAxisTop.html('')
+  ganttContent.html('')
+  xAxisBottom.html('')
 
   // Helper to get X axis values into appropriate form (date or integer (TODO))
   const xAxisValue = val => {
@@ -202,7 +237,10 @@ function render (data, config) {
     .map(columnNumber => d3.extent(data.data, d => xAxisValue(d.items[columnNumber])))
 
   // use the zoom level as part of the extent
-  const extent = [d3.min(extents, d => moment(d[0]).startOf(config.currentZoomLevel).valueOf()), d3.max(extents, d => moment(d[1]).endOf(config.currentZoomLevel).valueOf())]
+  const extent = [
+    d3.min(extents, d => d[0] ? moment(d[0]).startOf(config.currentZoomLevel).valueOf() : null),
+    d3.max(extents, d => d[1] ? moment(d[1]).endOf(config.currentZoomLevel).valueOf() : null)
+  ]
 
   // Create an x axis scaled based on zoom level.
   const range = moment.duration(moment(extent[1]).diff(moment(extent[0])))
@@ -210,6 +248,25 @@ function render (data, config) {
   const timeScale = d3.scaleTime()
     .domain(extent)
     .range([0, size * config.zoomLevelItemSize])
+  const xAxisTicks = Math.floor(size * config.zoomLevelItemSize / config.tickSeparation)
+
+  const drawXAxis = (parent, axisGenerator, yTranslate) => {
+    parent.append('div').classed('xAxisExpandCollapse', true)
+    parent.append('div').classed('xAxisTitle', true)
+      .style('width', titleWidth + 'px')
+    const axisSvg = parent.append('div').classed('xAxisTimeline', true)
+      .append('svg').attr('width', '100%').attr('height', config.rowHeight + config.rowPadding)
+    const xAxis = axisGenerator.scale(timeScale).ticks(xAxisTicks)
+    axisSvg.append('g').attr('transform', 'translate(' + timelineMargin + ',' + yTranslate + ')').call(xAxis)
+  }
+
+  // Draw x axes
+  if ((config.xAxisPosition === 'top') || (config.xAxisPosition === 'both')) {
+    drawXAxis(xAxisTop, d3.axisTop(), config.rowHeight)
+  }
+  if ((config.xAxisPosition === 'bottom') || (config.xAxisPosition === 'both')) {
+    drawXAxis(xAxisBottom, d3.axisBottom(), config.rowPadding)
+  }
 
   // Structure the data into sections
   const sectionRootSepRE = new RegExp('(.*?)(' + config.sectionNameSeparator + '.*|)$')
@@ -275,6 +332,7 @@ function render (data, config) {
     row.append('div').classed('title', true)
     row.append('div').classed('timeline', true)
       .append('svg').attr('width', '100%').attr('height', config.rowHeight + config.rowPadding)
+      .append('g').classed('gridLines', true).attr('transform', 'translate(' + timelineMargin + ')')
     return row
   }
 
@@ -314,7 +372,7 @@ function render (data, config) {
   }
 
   // Create the top level sections (which recursively adds subsections)
-  const sections = d3.select('#js_chart')
+  const sections = ganttContent
     .selectAll('.section')
     .data(sectionsData)
 
@@ -348,6 +406,15 @@ function render (data, config) {
     .style('padding-left', d => Math.min(d.indentLevel * levelIndent, titleWidth) + 'px')
     .style('width', d => Math.max(titleWidth - d.indentLevel * levelIndent, 0) + 'px')
     .text(d => eventName(d.name))
+
+  // Draw timeline grid lines
+  d3.selectAll('.timeline svg .gridLines')
+    .call(d3.axisBottom().scale(timeScale).ticks(xAxisTicks).tickSize(config.rowHeight + config.rowPadding))
+    .call(g => {
+      // Remove domain line and all labels
+      g.select('.domain').remove()
+      g.select('.tick text').remove()
+    })
 
   // Draw timelines (sections and events)
   const timelines = d3.selectAll('.timeline svg')

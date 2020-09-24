@@ -1,10 +1,31 @@
+/* Styling for xAxis to achieve same layout as sections */
+.xAxis {
+    display: flex;
+    align-items: center;
+    margin-bottom: 2px;
+}
+.xAxisExpandCollapse {
+    flex-shrink: 0;
+    width: 20px;
+    margin-left: 5px;
+}
+.xAxisTitle {
+    flex-shrink: 0;
+}
+.xAxisTimeline {
+    flex-grow: 1;
+    overflow: hidden;
+}
+.xAxisTimeline > svg {
+    display: block;
+}
+
 /* Styling for sections to induce proper table-like behavior */
 .sectionHeader {
     color: white;
     background-color: rgb(35, 151, 221);
     display: flex;
     align-items: center;
-    margin-bottom: 2px;
 }
 .event {
     display: flex;
@@ -25,7 +46,9 @@
     flex-grow: 1;
     overflow: hidden;
 }
-
+.timeline > svg {
+    display: block;
+}
 /* Carets for expand/collapse */
 .caret {
     width: 0;
