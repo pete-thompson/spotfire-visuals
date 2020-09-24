@@ -6,7 +6,7 @@ import { event as currentEvent } from 'd3-selection'
 const _ = require('underscore')
 const JSVizHelper = require('../lib/JSVizHelper.js')
 const d3 = _.extend({}, require('d3-array'), require('d3-axis'), require('d3-format'), require('d3-scale'), require('d3-selection'), require('d3-shape'), require('d3-time-format'))
-const moment = require('moment')
+const { DateTime } = require('luxon')
 
 // Include our stylesheet
 require('../styles/JSVizGantt.css')
@@ -238,12 +238,14 @@ function render (data, config) {
 
   // use the zoom level as part of the extent
   const extent = [
-    d3.min(extents, d => d[0] ? moment(d[0]).startOf(config.currentZoomLevel).valueOf() : null),
-    d3.max(extents, d => d[1] ? moment(d[1]).endOf(config.currentZoomLevel).valueOf() : null)
+    d3.min(extents, d => {
+      return d[0] ? DateTime.fromJSDate(d[0]).startOf(config.currentZoomLevel).toMillis() : null
+    }),
+    d3.max(extents, d => d[1] ? DateTime.fromJSDate(d[1]).endOf(config.currentZoomLevel).toMillis() : null)
   ]
 
   // Create an x axis scaled based on zoom level.
-  const range = moment.duration(moment(extent[1]).diff(moment(extent[0])))
+  const range = DateTime.fromMillis(extent[1]).diff(DateTime.fromMillis(extent[0]))
   const size = Math.round(range.as(config.currentZoomLevel))
   const timeScale = d3.scaleTime()
     .domain(extent)
@@ -279,11 +281,13 @@ function render (data, config) {
 
   const buildEvent = event => {
     return {
+      name: event.items[config.eventNameColumn],
       start: xAxisValue(event.items[config.eventStartColumn]),
       end: xAxisValue(event.items[config.eventEndColumn]),
       markerStart: event.items[config.eventStartMarkerColumn],
       markerEnd: event.items[config.eventEndMarkerColumn],
       line: event.items[config.eventLineColumn],
+      value: event.items[config.eventValueColumn],
       isMarked: event.hints.marked,
       markIndex: event.hints.index
     }
@@ -426,6 +430,7 @@ function render (data, config) {
       group.append('line').classed('itemLine', true)
       group.append('path').classed('markerStart', true)
       group.append('path').classed('markerEnd', true)
+      group.append('title')
       return group
     })
     .attr('transform', 'translate(' + timelineMargin + ',' + config.rowHeight / 2 + ')')
@@ -443,11 +448,13 @@ function render (data, config) {
     })
     .call(assignCSSClasses, 'markerEnd')
 
-  timelines.selectAll('.itemLine').filter(d => !d.end).remove()
+  timelines.selectAll('.itemLine').filter(d => !d.end && (d.start !== d.end)).remove()
   timelines.selectAll('.itemLine')
     .call(assignCSSClasses, 'line')
     .attr('x1', d => timeScale(d.start))
     .attr('y1', 0)
     .attr('x2', d => timeScale(d.end))
     .attr('y2', 0)
+
+  timelines.selectAll('title').text(d => eventName(d.name) + '\n' + DateTime.fromJSDate(d.start).toFormat('DD') + (d.end ? ' to ' + DateTime.fromJSDate(d.end).toFormat('DD') : '') + ((d.value && (d.value !== '')) ? '\n' + d.value : ''))
 }

@@ -13,6 +13,7 @@
         "devtool",
         "eslintfix",
         "imagesloaded",
+        "luxon",
         "minified",
         "rendercore",
         "rowdata",
