@@ -225,8 +225,8 @@ function render (data, config) {
   const xAxisValue = val => {
     if ((val === '') || (!val)) {
       return null
-    } else if ((val.indexOf('/Date(') === 0) && (val.substr(val.length - 2) === ')/') && (val.length === 21)) {
-      return new Date(Number(val.substr(6, 13)))
+    } else if ((val.indexOf('/Date(') === 0) && (val.substr(val.length - 2) === ')/')) {
+      return new Date(Number(val.replace('/Date(', '').replace(')/', '')))
     } else {
       return new Date(val)
     }
