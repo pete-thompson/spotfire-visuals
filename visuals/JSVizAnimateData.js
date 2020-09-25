@@ -165,8 +165,8 @@ function MarkingHandler (buttonPanel) {
       // Create a simple array for the jump control
       jumpValues = _.reduce(data.data, function (result, d) {
         var value = d.items[0].toString().trim()
-        if ((value.indexOf('/Date(') === 0) && (value.substr(value.length - 2) === ')/') && (value.length === 21)) {
-          value = new Date(Number(value.substr(6, 13)))
+        if ((value.indexOf('/Date(') === 0) && (value.substr(value.length - 2) === ')/')) {
+          value = new Date(Number(value.replace('/Date(', '').replace(')/', '')))
           value = $.datepicker.formatDate(config.dateFormat, value)
         }
         result.push(value)
