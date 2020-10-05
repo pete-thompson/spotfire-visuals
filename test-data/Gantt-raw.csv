@@ -1,0 +1,23 @@
+Event Id,Event Name,Start Date,End Date,Start Marker,End Marker,Value,Line
+0VISIT1,Visits->Baseline,2020-01-15,,Square+Black,,,
+1AE1,Adverse Events->Headache,2020-01-20,2020-01-25,WedgeStart+Red,VerticalLine+Red,0,Solid
+1AE2,Adverse Events->Headache,2020-02-05,2020-02-06,WedgeStart+Red,VerticalLine+Red,0,Solid
+1AE3,Adverse Events->Sore throat,2020-02-01,2020-02-05 15:00,WedgeStart+Red,VerticalLine+Red,0,Solid
+2EX1,Exposure->Dose,2020-01-21,2020-01-21,Cross+Blue,0,
+2EX1,Exposure->Dose,2020-02-03,2020-02-03,Cross+Blue,0,
+3LB1,Laboratory->Pregnancy->Pregnant?,2020-01-15,2020-01-15,Text+Green,,No,Solid
+4LB1,Laboratory->Chemistry->Sodium,2020-01-15,2020-01-15,Circle+Green,,142.1,Solid
+4LB1,Laboratory->Chemistry->Sodium,2020-01-22,2020-01-22,Circle+Green,,138.7,Solid
+4LB1,Laboratory->Chemistry->Sodium,2020-01-29,2020-01-29,Circle+Green,,120.3,Solid
+4LB2,Laboratory->Chemistry->Potassium,2020-01-15,2020-01-15,Circle+Green,,4.4,Solid
+4LB2,Laboratory->Chemistry->Potassium,2020-01-22,2020-01-22,Circle+Green,,4.1,Solid
+4LB2,Laboratory->Chemistry->Potassium,2020-01-29,2020-01-29,Circle+Green,,4.7,Solid
+4LB3,Laboratory->Chemistry->Chlorine,2020-01-15,2020-01-15,Circle+Green,,105.8,Solid
+4LB3,Laboratory->Chemistry->Chlorine,2020-01-22,2020-01-22,Circle+Green,,105.8,Solid
+4LB3,Laboratory->Chemistry->Chlorine,2020-01-29,2020-01-29,Circle+Green,,105.8,Solid
+5LB1,Laboratory->Hematology->HCT,2020-01-15,2020-01-15,Circle+Green,,47.4,Solid
+5LB1,Laboratory->Hematology->HCT,2020-01-22,2020-01-22,Circle+Green,,44.7,Solid
+5LB1,Laboratory->Hematology->HCT,2020-01-29,2020-01-29,Circle+Green,,42.5,Solid
+5LB2,Laboratory->Hematology->RBC,2020-01-15,2020-01-15,Circle+Green,,4.8,Solid
+5LB2,Laboratory->Hematology->RBC,2020-01-22,2020-01-22,Circle+Green,,4.4,Solid
+5LB2,Laboratory->Hematology->RBC,2020-01-29,2020-01-29,Star+Red,,8.2,Solid
