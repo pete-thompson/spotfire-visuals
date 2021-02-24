@@ -9,6 +9,7 @@ module.exports = function () {
       JSVizWordCloud: './visuals/JSVizWordCloud.js',
       JSVizNetwork: './visuals/JSVizNetwork.js',
       JSVizSankey: './visuals/JSVizSankey.js',
+      JSVizSunburst: './visuals/JSVizSunburst.js',
       JSVizAnimateData: './visuals/JSVizAnimateData.js',
       JSVizJustGage: './visuals/JSVizJustGage.js',
       JSVizBulletList: './visuals/JSVizBulletList.js'
