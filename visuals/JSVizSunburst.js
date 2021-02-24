@@ -165,7 +165,7 @@ function render (data, config) {
   // Draw the chart - TODO build transitions when the data changes rather than just redrawing from scratch
   // First some defs to use to clip the text to arcs
   g.selectAll('*').remove()
-  g.append('defs').selectAll('clipPath')
+  const clipPaths = g.append('defs').selectAll('clipPath')
     .data(root.descendants().slice(1))
     .join('clipPath')
     .attr('id', d => 'arc-' + arcUniqueIds.get(d.path))
@@ -227,6 +227,13 @@ function render (data, config) {
     // Transition the data on all arcs, even the ones that aren’t visible,
     // so that if this transition is interrupted, entering arcs will start
     // the next transition from the desired position.
+    clipPaths.transition(t)
+      .tween('data', d => {
+        const i = d3.interpolate(d.current, d.target)
+        return t => { d.current = i(t) }
+      })
+      .attrTween('d', d => () => arc(d.current))
+
     path.transition(t)
       .tween('data', d => {
         const i = d3.interpolate(d.current, d.target)
