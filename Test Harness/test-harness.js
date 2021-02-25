@@ -237,6 +237,20 @@ window.JSViz = {
       })
 
     $('<button>').appendTo(testButtons)
+      .text('Mark random data')
+      .click(function (e) {
+        e.stopPropagation()
+
+        lastDataData.forEach(function (row) {
+          row.hints.marked = (Math.random() > 0.5)
+        })
+
+        sfData.data = lastDataData
+
+        window.renderCore(sfData)
+      })
+
+    $('<button>').appendTo(testButtons)
       .text('Restore original data')
       .click(function (e) {
         e.stopPropagation()
