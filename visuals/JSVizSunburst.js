@@ -21,7 +21,8 @@ var arcUniqueIds = new Map()
 
 var defaultConfig = {
   valueFormat: ',d',
-  levelsVisible: 2
+  allowZoom: true,
+  levelsVisible: 3
 }
 
 JSVizHelper.SetupViz({
@@ -46,9 +47,15 @@ JSVizHelper.SetupViz({
       name: 'valueFormat'
     },
     {
+      caption: 'Allow user to zoom?',
+      type: 'checkbox',
+      name: 'allowZoom'
+    },
+    {
       caption: 'Levels visible',
       type: 'number',
       name: 'levelsVisible',
+      enabledIfChecked: 'allowZoom',
       inputAttributes: {
         min: 0,
         max: 100,
@@ -77,14 +84,6 @@ function firstTimeSetup (data, config) {
 
 // Main render method
 function render (data, config) {
-  // Figure out size
-  size.width = parent.innerWidth() - margin.left - margin.right
-  size.height = parent.innerHeight() - margin.top - margin.bottom
-  const radius = Math.min(size.width, size.height) / (config.levelsVisible + 1) / 2
-
-  // Coordinates are (0,0) at the center of the SVG
-  g.attr('transform', `translate(${size.width / 2},${size.height / 2})`)
-
   // Update the default fill color (particularly for text) in case theme changes
   svg.attr('fill', $('body').css('color'))
 
@@ -139,6 +138,14 @@ function render (data, config) {
   root.sort((a, b) => b.value - a.value)
   const partition = d3.partition().size([2 * Math.PI, root.height + 1])
   root = partition(root)
+
+  // Figure out size
+  size.width = parent.innerWidth() - margin.left - margin.right
+  size.height = parent.innerHeight() - margin.top - margin.bottom
+  const radius = Math.min(size.width, size.height) / ((config.allowZoom ? config.levelsVisible : root.height) + 1) / 2
+
+  // Coordinates are (0,0) at the center of the SVG
+  g.attr('transform', `translate(${size.width / 2 + margin.left},${size.height / 2 + margin.top})`)
 
   // Colours
   const colourDomain = root.children.map(x => x.name)
@@ -254,14 +261,14 @@ function render (data, config) {
       .attr('transform', d => labelTransform(d.target))
   }
 
-  // Only visible if in first 2 levels
+  // Only visible if in first n levels or zoom off
   function arcVisible (d) {
-    return d.y1 <= (config.levelsVisible + 1) && d.y0 >= 0 && d.x1 > d.x0
+    return (!config.allowZoom || (d.y1 <= (config.levelsVisible + 1))) && d.y0 >= 0 && d.x1 > d.x0
   }
 
-  // Only visible if in first 2 levels and it's a reasonably large arc
+  // Only visible if in first n levels or zoom off and it's a reasonably large arc
   function labelVisible (d) {
-    return d.y1 <= (config.levelsVisible + 1) && d.y0 >= 0 && (d.y1 - d.y0) * (d.x1 - d.x0) > 0.03
+    return (!config.allowZoom || (d.y1 <= (config.levelsVisible + 1) && d.y0 >= 0)) && (d.y1 - d.y0) * (d.x1 - d.x0) > 0.03
   }
 
   // Calculate appropriate rotation and translation to position the label
