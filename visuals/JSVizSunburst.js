@@ -13,11 +13,15 @@ var $ = require('jquery')
 
 var parent
 var svg
-var g
+var outerG
+var arcG
+var defs
+var labelG
 var margin = { left: 10, right: 10, top: 10, bottom: 10 }
 var size = { width: 0, height: 0 }
 // eslint-disable-next-line no-undef
 var arcUniqueIds = new Map()
+var colourDomain = []
 
 var defaultConfig = {
   valueFormat: ',d',
@@ -77,9 +81,17 @@ function firstTimeSetup (data, config) {
     .attr('width', '100%')
     .attr('height', '100%')
 
-  g = svg.append('g')
+  outerG = svg.append('g')
     .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
     .style('isolation', 'isolate')
+
+  arcG = outerG.append('g')
+  labelG = outerG.append('g')
+    .attr('pointer-events', 'none')
+    .attr('text-anchor', 'middle')
+    .style('user-select', 'none')
+
+  defs = svg.append('defs')
 }
 
 // Main render method
@@ -145,10 +157,12 @@ function render (data, config) {
   const radius = Math.min(size.width, size.height) / ((config.allowZoom ? config.levelsVisible : root.height) + 1) / 2
 
   // Coordinates are (0,0) at the center of the SVG
-  g.attr('transform', `translate(${size.width / 2 + margin.left},${size.height / 2 + margin.top})`)
+  outerG.attr('transform', `translate(${size.width / 2 + margin.left},${size.height / 2 + margin.top})`)
 
-  // Colours
-  const colourDomain = root.children.map(x => x.name)
+  // Colours - we track all data we ever see in case data is filtered and re-displayed
+  const newColourDomain = root.children.map(x => x.name)
+  // eslint-disable-next-line no-undef
+  colourDomain = [...new Set(colourDomain.concat(newColourDomain))]
   const color = d3.scaleOrdinal(d3.schemeCategory10).domain(colourDomain)
 
   // Value formatting
@@ -170,48 +184,90 @@ function render (data, config) {
     .innerRadius(d => d.y0 * radius)
     .outerRadius(d => Math.max(d.y0 * radius, d.y1 * radius - 1))
 
-  // Draw the chart - TODO build transitions when the data changes rather than just redrawing from scratch
+  // Draw the chart
+  const mainTransition = d3.select('#js_chart').transition('main').duration(1000)
+  // const markingTransition = d3.select('#js_chart').transition('marking').duration(200)
+
   // First some defs to use to clip the text to arcs
-  g.selectAll('*').remove()
-  const clipPaths = g.append('defs').selectAll('clipPath')
-    .data(root.descendants().slice(1))
-    .join('clipPath')
+  const clipPaths = defs.selectAll('clipPath')
+    .data(root.descendants().slice(1), (d) => d.path)
+
+  clipPaths.exit()
+    .remove()
+
+  const clipPathsEnterPaths = clipPaths.enter()
+    .append('clipPath')
     .attr('id', d => 'arc-' + arcUniqueIds.get(d.path))
     .append('path')
     .attr('d', d => arc(d.current))
 
-  const path = g.append('g')
-    .selectAll('path')
-    .data(root.descendants().slice(1))
-    .join('path')
-    .attr('fill', d => { while (d.depth > 1) d = d.parent; return color(d.name) })
+  // We only transition those that already exist
+  clipPaths.select('path')
+    .transition(mainTransition)
+    .attr('d', d => arc(d.current))
+
+  const clipPathPaths = clipPaths.select('path').merge(clipPathsEnterPaths)
+
+  // Now the arcs themselves
+  const arcs = arcG.selectAll('path')
+    .data(root.descendants().slice(1), (d) => d.path)
+
+  arcs.exit()
+    .remove()
+
+  const arcsEnter = arcs.enter()
+    .append('path')
+    .attr('fill', d => { while (d.depth > 1) { d = d.parent } return color(d.name) })
     .attr('fill-opacity', d => arcVisible(d.current) ? (d.children ? 0.6 : 0.4) : 0)
     .attr('d', d => arc(d.current))
 
-  // Show pointer when the user can click to move lower
-  path.filter(d => d.children)
+  const arcsEnterTitle = arcsEnter.append('title')
+
+  const arcsMerge = arcs.merge(arcsEnter)
+
+  // We only transition those that already exist
+  arcs.transition(mainTransition)
+    .attr('fill-opacity', d => arcVisible(d.current) ? (d.children ? 0.6 : 0.4) : 0)
+    .attr('d', d => arc(d.current))
+
+  // Show pointer when the user can click to zoom
+  arcsMerge.filter(d => (config.allowZoom && d.children))
     .style('cursor', 'pointer')
     .on('click', clicked)
+  arcsMerge.filter(d => !(config.allowZoom && d.children))
+    .style('cursor', '')
+    .on('click', null)
 
-  // Tooltips
-  path.append('title')
+  // Tooltips (no transition)
+  arcs.select('title')
+    .merge(arcsEnterTitle)
     .text(d => `${d.path}\n${format(d.value)}`)
 
-  const label = g.append('g')
-    .attr('pointer-events', 'none')
-    .attr('text-anchor', 'middle')
-    .style('user-select', 'none')
-    .selectAll('text')
-    .data(root.descendants().slice(1))
-    // We use a G to set the clip path
-    .join('g')
+  const label = labelG.selectAll('g')
+    .data(root.descendants().slice(1), (d) => d.path)
+
+  label.exit()
+    .remove()
+
+  // We use a G to set the clip path
+  const labelEnter = label.enter()
+    .append('g')
     .style('clip-path', d => `url(#${'arc-' + arcUniqueIds.get(d.path)})`)
-    // Now we can use Text with a transform - otherwise the transform applies to the clip path and nothing appears
-    .append('text')
+
+  // Now we can use Text with a transform - otherwise the transform applies to the clip path and nothing appears
+  const labelEnterText = labelEnter.append('text')
     .attr('dy', '0.35em')
+    .text(d => d.name)
     .attr('fill-opacity', d => +labelVisible(d.current))
     .attr('transform', d => labelTransform(d.current))
-    .text(d => d.name)
+
+  const labelTextMerge = label.select('text').merge(labelEnterText)
+
+  // We only transition those that already exist
+  label.select('text')
+    .transition(mainTransition)
+    .attr('fill-opacity', d => +labelVisible(d.current))
+    .attr('transform', d => labelTransform(d.current))
 
   function clicked (p) {
     currentEvent.stopPropagation()
@@ -230,19 +286,18 @@ function render (data, config) {
       }
     })
 
-    const t = g.transition().duration(750)
-
     // Transition the data on all arcs, even the ones that aren’t visible,
     // so that if this transition is interrupted, entering arcs will start
     // the next transition from the desired position.
-    clipPaths.transition(t)
+    const clickTransition = d3.select('#js_chart').transition('main').duration(1000)
+    clipPathPaths.transition(clickTransition)
       .tween('data', d => {
         const i = d3.interpolate(d.current, d.target)
         return t => { d.current = i(t) }
       })
       .attrTween('d', d => () => arc(d.current))
 
-    path.transition(t)
+    arcsMerge.transition(clickTransition)
       .tween('data', d => {
         const i = d3.interpolate(d.current, d.target)
         return t => { d.current = i(t) }
@@ -254,9 +309,9 @@ function render (data, config) {
       .attrTween('d', d => () => arc(d.current))
 
     // Transition for labels when we click
-    label.filter(function (d) {
+    labelTextMerge.filter(function (d) {
       return +this.getAttribute('fill-opacity') || labelVisible(d.target)
-    }).transition(t)
+    }).transition(clickTransition)
       .attr('fill-opacity', d => +labelVisible(d.target))
       .attr('transform', d => labelTransform(d.target))
   }
