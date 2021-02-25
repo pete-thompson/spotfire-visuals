@@ -26,6 +26,9 @@ window.JSViz = {
   var lastDataData
   // Callbacks for testing markings
   var markingCallbacks = []
+  // Remember the original data so we can restore it
+  var originalDataData
+
 
   // Set up the page - assumes that basically nothing in the HTML page for the tester
   $().ready(function () {
@@ -39,6 +42,7 @@ window.JSViz = {
     currentStyle = sfData.style
     legend = sfData.legend
     lastDataData = sfData.data
+    originalDataData = sfData.data
 
     // The Div to contain the jsviz chart
     $('body').append('<div style="position: absolute; width: 100%; height: 100%; top: 0px; left: 0px;" id="js_chart" />')
@@ -170,7 +174,7 @@ window.JSViz = {
     markingCallbacks.push(callback)
   }
 
-  // Add buttons on the page that simulate changing between light and dark themes, enables/disables legends, randomizing data and switching to web player mode
+  // Add buttons on the page that simulate changing between light and dark themes, enables/disables legends, randomizing data, filtering and switching to web player mode
   $().ready(function () {
     var testButtons = $('<div>').appendTo(testerDialog)
       .css('position', 'absolute')
@@ -212,6 +216,32 @@ window.JSViz = {
             }
           })
         })
+
+        sfData.data = lastDataData
+
+        window.renderCore(sfData)
+      })
+
+    $('<button>').appendTo(testButtons)
+      .text('Filter data')
+      .click(function (e) {
+        e.stopPropagation()
+
+        lastDataData = lastDataData.filter(function () {
+          return (Math.random() > 0.5)
+        })
+
+        sfData.data = lastDataData
+
+        window.renderCore(sfData)
+      })
+
+    $('<button>').appendTo(testButtons)
+      .text('Restore original data')
+      .click(function (e) {
+        e.stopPropagation()
+
+        lastDataData = originalDataData
 
         sfData.data = lastDataData
 
