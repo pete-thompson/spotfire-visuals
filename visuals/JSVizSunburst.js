@@ -105,13 +105,14 @@ function render (data, config) {
   // We will automatically roll up multiple rows with matching hierarchy values
   const columnCount = data.columns.length
   const grouping = Array.from(Array(columnCount - 1).keys()).map(x => d => { return d.items[x] })
-  const group = d3.rollup(data.data, v => { return { hints: v.map(x => x.hints.index), value: v.reduce((a, b) => a + b.items[columnCount - 1], 0) } }, ...grouping)
+  const group = d3.rollup(data.data, v => { return { hints: v.map(x => x.hints.index), marked: v.reduce((a, b) => a || b.hints.marked, false), value: v.reduce((a, b) => a + b.items[columnCount - 1], 0) } }, ...grouping)
   var root = d3.hierarchy(group)
 
   // Now simplify the hierarchy object - ensure each node has:
   // name - the text to show
   // hints - an array of row hints for marking
   // value - the total value of all rows within the node
+  var anyMarked = false
   root.each(d => {
     d.current = d
     d.name = d.data[0]
@@ -120,14 +121,18 @@ function render (data, config) {
       const answer = d.leaves().reduce((a, b) => {
         a.hints = a.hints.concat(b.data[1].hints)
         a.value = a.value + b.data[1].value
+        a.marked = a.marked || b.data[1].marked
         return a
-      }, { hints: [], value: 0 })
+      }, { hints: [], value: 0, marked: false })
       d.hints = answer.hints
       d.value = answer.value
+      d.marked = answer.marked
     } else {
       d.hints = d.data[1].hints
       d.value = d.data[1].value
+      d.marked = d.data[1].marked
     }
+    anyMarked = anyMarked || d.marked
   })
 
   // Trim out any nodes with no name - supports sparse hierarchies in data presented as rows/columns
@@ -218,7 +223,7 @@ function render (data, config) {
   const arcsEnter = arcs.enter()
     .append('path')
     .attr('fill', d => { while (d.depth > 1) { d = d.parent } return color(d.name) })
-    .attr('fill-opacity', d => arcVisible(d.current) ? (d.children ? 0.6 : 0.4) : 0)
+    .attr('fill-opacity', d => arcOpacity(d, d.current))
     .attr('d', d => arc(d.current))
 
   const arcsEnterTitle = arcsEnter.append('title')
@@ -227,7 +232,7 @@ function render (data, config) {
 
   // We only transition those that already exist
   arcs.transition(mainTransition)
-    .attr('fill-opacity', d => arcVisible(d.current) ? (d.children ? 0.6 : 0.4) : 0)
+    .attr('fill-opacity', d => arcOpacity(d, d.current))
     .attr('d', d => arc(d.current))
 
   // Show pointer when the user can click to zoom
@@ -305,7 +310,7 @@ function render (data, config) {
       .filter(function (d) {
         return +this.getAttribute('fill-opacity') || arcVisible(d.target)
       })
-      .attr('fill-opacity', d => arcVisible(d.target) ? (d.children ? 0.6 : 0.4) : 0)
+      .attr('fill-opacity', d => arcOpacity(d, d.target))
       .attrTween('d', d => () => arc(d.current))
 
     // Transition for labels when we click
@@ -335,5 +340,9 @@ function render (data, config) {
       const y = (d.y0 + d.y1) / 2 * radius
       return `rotate(${x - 90}) translate(${y},0) rotate(${x < 180 ? 0 : 180})`
     }
+  }
+
+  function arcOpacity (d, currentOrTarget) {
+    return arcVisible(currentOrTarget) ? (d.children ? (d.marked ? 0.8 : (anyMarked ? 0.4 : 0.6)) : (d.marked ? 0.6 : (anyMarked ? 0.2 : 0.4))) : 0
   }
 }
