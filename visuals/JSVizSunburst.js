@@ -26,6 +26,7 @@ var defaultConfig = {
 
 JSVizHelper.SetupViz({
   defaultConfig: defaultConfig,
+  configButton: JSVizHelper.configButton.gearRight,
   firstTimeSetup: firstTimeSetup,
   render: render,
   renderOnResize: true,
