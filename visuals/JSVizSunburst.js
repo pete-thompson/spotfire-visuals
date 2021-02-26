@@ -373,7 +373,8 @@ function render (data, config) {
           p = p.parent
         }
 
-        root.each(d => {
+        // Update 'target' on all data associated with arcs (note, not using the root variable since arcs from a previous render won't link to the root objects)
+        arcsMerge.data().forEach(d => {
           d.target = {
             x0: Math.max(0, Math.min(1, (d.x0 - p.x0) / (p.x1 - p.x0))) * 2 * Math.PI,
             x1: Math.max(0, Math.min(1, (d.x1 - p.x0) / (p.x1 - p.x0))) * 2 * Math.PI,
