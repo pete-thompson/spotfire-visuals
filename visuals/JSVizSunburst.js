@@ -22,6 +22,8 @@ var size = { width: 0, height: 0 }
 // eslint-disable-next-line no-undef
 var arcUniqueIds = new Map()
 var colourDomain = []
+var modeButton
+var zoomMode = 'zoom'
 
 var defaultConfig = {
   valueFormat: ',d',
@@ -31,7 +33,7 @@ var defaultConfig = {
 
 JSVizHelper.SetupViz({
   defaultConfig: defaultConfig,
-  configButton: JSVizHelper.configButton.gearRight,
+  configButton: JSVizHelper.configButton.textLeft,
   firstTimeSetup: firstTimeSetup,
   render: render,
   renderOnResize: true,
@@ -80,6 +82,12 @@ function firstTimeSetup (data, config) {
   svg = d3.select('#js_chart').append('svg')
     .attr('width', '100%')
     .attr('height', '100%')
+    .on('click', function () {
+      if (zoomMode === 'mark') {
+        var markData = { markMode: JSVizHelper.getMarkMode(currentEvent), indexSet: [] }
+        window.markIndices(markData)
+      }
+    })
 
   outerG = svg.append('g')
     .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
@@ -92,6 +100,85 @@ function firstTimeSetup (data, config) {
     .style('user-select', 'none')
 
   defs = svg.append('defs')
+
+  // Setup the buttons
+  var buttonPanel = $('<div>')
+    .appendTo(parent)
+    .css('position', 'absolute')
+    .css('right', '0')
+    .css('top', '0')
+    .css('z-index', 999)
+
+  // A dialog for instructions
+  var instructionsDialog = $('<div>')
+    .appendTo('#js_chart')
+    .dialog({
+      autoOpen: false,
+      modal: true,
+      closeOnEscape: true,
+      width: Math.min(500, $('#js_chart').width() - 20),
+      title: 'Instructions for the Sunburst Chart',
+      buttons: {
+        OK: function () {
+          $(this).dialog('close')
+        }
+      },
+      open: function (event, ui) {
+        $('.ui-dialog-titlebar-close', ui.dialog | ui).hide()
+      }
+    })
+
+  var instructions =
+    'A Sunburst chart is a multilevel pie chart used to represent the proportion of different values found at each level in a hierarchy.<br/>' +
+    '<span id="zoomInstructions">The Sunburst chart has two modes, which can be selected using the Mode button. In zoom mode ' +
+    'clicking on a segment will drill in to show details of that segment and its children, ' +
+    'whereas in mark mode clicking on a segment will mark that segment and its children.<br/>' +
+    'Pie segments are shown in a darker colour when child segments are available, thus indicating where zooming is available. </span>'
+
+  $('<p>')
+    .html(instructions)
+    .appendTo(instructionsDialog)
+
+  // A button for showing some instructions
+  $('<button>')
+    .appendTo(buttonPanel)
+    .button({
+      label: 'Help'
+    })
+    .show()
+    .click(function (event) {
+      event.stopPropagation()
+      instructionsDialog.dialog('open')
+    })
+
+  // This button flips between zooming and marking
+  modeButton = $('<button>')
+    .appendTo(buttonPanel)
+    .button({
+      label: 'Mode: zoom'
+    })
+    .show()
+    .click(function (event) {
+      event.stopPropagation()
+      if (zoomMode === 'zoom') {
+        zoomMode = 'mark'
+        $(this).button('option', 'label', 'Mode: mark')
+      } else {
+        zoomMode = 'zoom'
+        $(this).button('option', 'label', 'Mode: zoom')
+      }
+    })
+}
+
+function enableDisableZoom (enabled) {
+  if (enabled) {
+    modeButton.show()
+    $('#zoomInstructions').css('display', '')
+  } else {
+    zoomMode = 'mark'
+    modeButton.hide()
+    $('#zoomInstructions').css('display', 'none')
+  }
 }
 
 // Main render method
@@ -99,13 +186,16 @@ function render (data, config) {
   // Update the default fill color (particularly for text) in case theme changes
   svg.attr('fill', $('body').css('color'))
 
+  // Enable or disable zoom
+  enableDisableZoom(config.allowZoom)
+
   // Convert the data into d3 hierarchical form
   // We assume that the last column in the data is the numeric value to use for the size
   // and that all other columns are text representing the hierarchy
   // We will automatically roll up multiple rows with matching hierarchy values
   const columnCount = data.columns.length
   const grouping = Array.from(Array(columnCount - 1).keys()).map(x => d => { return d.items[x] })
-  const group = d3.rollup(data.data, v => { return { hints: v.map(x => x.hints.index), marked: v.reduce((a, b) => a || b.hints.marked, false), value: v.reduce((a, b) => a + b.items[columnCount - 1], 0) } }, ...grouping)
+  const group = d3.rollup(data.data, v => { return { indices: v.map(x => x.hints.index), marked: v.reduce((a, b) => a || b.hints.marked, false), value: v.reduce((a, b) => a + b.items[columnCount - 1], 0) } }, ...grouping)
   var root = d3.hierarchy(group)
 
   // Now simplify the hierarchy object - ensure each node has:
@@ -119,16 +209,16 @@ function render (data, config) {
     d.path = d.ancestors().map(d => d.name).reverse().join('/').substr(1)
     if (d.children) {
       const answer = d.leaves().reduce((a, b) => {
-        a.hints = a.hints.concat(b.data[1].hints)
+        a.indices = a.indices.concat(b.data[1].indices)
         a.value = a.value + b.data[1].value
         a.marked = a.marked || b.data[1].marked
         return a
-      }, { hints: [], value: 0, marked: false })
-      d.hints = answer.hints
+      }, { indices: [], value: 0, marked: false })
+      d.indices = answer.indices
       d.value = answer.value
       d.marked = answer.marked
     } else {
-      d.hints = d.data[1].hints
+      d.indices = d.data[1].indices
       d.value = d.data[1].value
       d.marked = d.data[1].marked
     }
@@ -191,7 +281,7 @@ function render (data, config) {
 
   // Draw the chart
   const mainTransition = d3.select('#js_chart').transition('main').duration(1000)
-  // const markingTransition = d3.select('#js_chart').transition('marking').duration(200)
+  const markingTransition = d3.select('#js_chart').transition('marking').duration(200)
 
   // First some defs to use to clip the text to arcs
   const clipPaths = defs.selectAll('clipPath')
@@ -225,6 +315,7 @@ function render (data, config) {
     .attr('fill', d => { while (d.depth > 1) { d = d.parent } return color(d.name) })
     .attr('fill-opacity', d => arcOpacity(d, d.current))
     .attr('d', d => arc(d.current))
+    .on('click', clicked)
 
   const arcsEnterTitle = arcsEnter.append('title')
 
@@ -232,16 +323,10 @@ function render (data, config) {
 
   // We only transition those that already exist
   arcs.transition(mainTransition)
-    .attr('fill-opacity', d => arcOpacity(d, d.current))
     .attr('d', d => arc(d.current))
 
-  // Show pointer when the user can click to zoom
-  arcsMerge.filter(d => (config.allowZoom && d.children))
-    .style('cursor', 'pointer')
-    .on('click', clicked)
-  arcsMerge.filter(d => !(config.allowZoom && d.children))
-    .style('cursor', '')
-    .on('click', null)
+  arcs.transition(markingTransition)
+    .attr('fill-opacity', d => arcOpacity(d, d.current))
 
   // Tooltips (no transition)
   arcs.select('title')
@@ -276,49 +361,58 @@ function render (data, config) {
 
   function clicked (p) {
     currentEvent.stopPropagation()
-    // Check if we clicked on the center
-    if ((p.target) && (p.target.y0 === 0)) {
-      p = p.parent
-    }
+    // check for marking or zoom
+    if (zoomMode === 'mark') {
+      var markData = { markMode: JSVizHelper.getMarkMode(currentEvent), indexSet: p.indices }
+      window.markIndices(markData)
+    } else {
+      // zooming only available for arcs with children
+      if (p.children) {
+        // Check if we clicked on the center
+        if ((p.target) && (p.target.y0 === 0)) {
+          p = p.parent
+        }
 
-    root.each(d => {
-      d.target = {
-        x0: Math.max(0, Math.min(1, (d.x0 - p.x0) / (p.x1 - p.x0))) * 2 * Math.PI,
-        x1: Math.max(0, Math.min(1, (d.x1 - p.x0) / (p.x1 - p.x0))) * 2 * Math.PI,
-        y0: Math.max(0, d.y0 - p.depth),
-        y1: Math.max(0, d.y1 - p.depth),
-        name: d.name
+        root.each(d => {
+          d.target = {
+            x0: Math.max(0, Math.min(1, (d.x0 - p.x0) / (p.x1 - p.x0))) * 2 * Math.PI,
+            x1: Math.max(0, Math.min(1, (d.x1 - p.x0) / (p.x1 - p.x0))) * 2 * Math.PI,
+            y0: Math.max(0, d.y0 - p.depth),
+            y1: Math.max(0, d.y1 - p.depth),
+            name: d.name
+          }
+        })
+
+        // Transition the data on all arcs, even the ones that aren’t visible,
+        // so that if this transition is interrupted, entering arcs will start
+        // the next transition from the desired position.
+        const clickTransition = d3.select('#js_chart').transition('main').duration(1000)
+        clipPathPaths.transition(clickTransition)
+          .tween('data', d => {
+            const i = d3.interpolate(d.current, d.target)
+            return t => { d.current = i(t) }
+          })
+          .attrTween('d', d => () => arc(d.current))
+
+        arcsMerge.transition(clickTransition)
+          .tween('data', d => {
+            const i = d3.interpolate(d.current, d.target)
+            return t => { d.current = i(t) }
+          })
+          .filter(function (d) {
+            return +this.getAttribute('fill-opacity') || arcVisible(d.target)
+          })
+          .attr('fill-opacity', d => arcOpacity(d, d.target))
+          .attrTween('d', d => () => arc(d.current))
+
+        // Transition for labels when we click
+        labelTextMerge.filter(function (d) {
+          return +this.getAttribute('fill-opacity') || labelVisible(d.target)
+        }).transition(clickTransition)
+          .attr('fill-opacity', d => +labelVisible(d.target))
+          .attr('transform', d => labelTransform(d.target))
       }
-    })
-
-    // Transition the data on all arcs, even the ones that aren’t visible,
-    // so that if this transition is interrupted, entering arcs will start
-    // the next transition from the desired position.
-    const clickTransition = d3.select('#js_chart').transition('main').duration(1000)
-    clipPathPaths.transition(clickTransition)
-      .tween('data', d => {
-        const i = d3.interpolate(d.current, d.target)
-        return t => { d.current = i(t) }
-      })
-      .attrTween('d', d => () => arc(d.current))
-
-    arcsMerge.transition(clickTransition)
-      .tween('data', d => {
-        const i = d3.interpolate(d.current, d.target)
-        return t => { d.current = i(t) }
-      })
-      .filter(function (d) {
-        return +this.getAttribute('fill-opacity') || arcVisible(d.target)
-      })
-      .attr('fill-opacity', d => arcOpacity(d, d.target))
-      .attrTween('d', d => () => arc(d.current))
-
-    // Transition for labels when we click
-    labelTextMerge.filter(function (d) {
-      return +this.getAttribute('fill-opacity') || labelVisible(d.target)
-    }).transition(clickTransition)
-      .attr('fill-opacity', d => +labelVisible(d.target))
-      .attr('transform', d => labelTransform(d.target))
+    }
   }
 
   // Only visible if in first n levels or zoom off
