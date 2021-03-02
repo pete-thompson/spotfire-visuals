@@ -88,10 +88,8 @@ function firstTimeSetup (data, config) {
     .attr('width', '100%')
     .attr('height', '100%')
     .on('click', function () {
-      if (zoomMode === 'mark') {
-        var markData = { markMode: JSVizHelper.getMarkMode(currentEvent), indexSet: [] }
-        window.markIndices(markData)
-      }
+      var markData = { markMode: JSVizHelper.getMarkMode(currentEvent), indexSet: [] }
+      window.markIndices(markData)
     })
 
   outerG = svg.append('g')
@@ -365,6 +363,7 @@ function render (data, config) {
     .transition(mainTransition)
     .attr('fill-opacity', d => +labelVisible(d.current))
     .attr('transform', d => labelTransform(d.current))
+    .style('font-weight', d => d.marked ? 'bold' : '')
 
   function clicked (p) {
     currentEvent.stopPropagation()
