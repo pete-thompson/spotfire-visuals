@@ -26,6 +26,7 @@ var arcUniqueIds = new Map()
 var colourDomain = []
 var modeButton
 var zoomMode = 'zoom'
+var totalLevelsVisible
 
 var defaultConfig = {
   valueFormat: ',d',
@@ -253,7 +254,8 @@ function render (data, config) {
   // Figure out size
   size.width = parent.innerWidth() - margin.left - margin.right
   size.height = parent.innerHeight() - margin.top - margin.bottom
-  levelRadius = Math.min(size.width, size.height) / ((config.allowZoom ? config.levelsVisible : root.height) + 1) / 2
+  totalLevelsVisible = config.allowZoom ? config.levelsVisible : root.height
+  levelRadius = Math.min(size.width, size.height) / (totalLevelsVisible + 1) / 2
 
   // Coordinates are (0,0) at the center of the SVG
   center = { x: size.width / 2 + margin.left, y: size.height / 2 + margin.top }
@@ -449,65 +451,120 @@ function render (data, config) {
 
 // Called when an area has been selected for marking.
 function markLasso (markMode, rectangle) {
-  // Add properties with DOM style names to our rectangle
-  rectangle.left = rectangle.x
-  rectangle.top = rectangle.y
+  // The logic we use is to calculate where the rectangle intersects with circles drawn at each level
+  // then look at whether a particular arc falls inside the rectangle or not based on the intersection angles
 
-  // Helper function to convert screen (x,y) into polar coordinates that match the system used for the data (x0,y0) coordinates
-  function polar (x, y) {
-    x = x - center.x
-    y = y - center.y
-    var answer = {
-      x: 0,
-      y: Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2)) / levelRadius
+  // First transform the coordinates of the rectangle such that (0,0) is the center of the chart
+  // and x/y are expressed in terms of the level (0 at center, 1 edge of inner circle, 2 outer edge of first layer of arcs etc.)
+  // Y axis upwards. (x0,y0) is bottom left, (x1,y1) is top right
+  const rect = {
+    x0: (rectangle.x - center.x) / levelRadius,
+    x1: (rectangle.x + rectangle.width - center.x) / levelRadius,
+    y0: -(rectangle.y + rectangle.height - center.y) / levelRadius,
+    y1: -(rectangle.y - center.y) / levelRadius
+  }
+
+  // Now loop over all our circles figuring out intersection points
+  const levelInfo = []
+  for (var level = 0; level <= totalLevelsVisible + 1; level++) {
+    const thisLevelInfo = {
+      allOutside: false,
+      allInside: false,
+      intersectAngles: []
     }
 
-    if (x === 0) {
-      answer.x = (y >= 0) ? 0 : Math.PI
+    // Note that level 0 will either be all inside or all ourside, so no need to worry about division by zero problems when looking for intersects
+    if ((rect.x0 <= -level) && (rect.x1 >= level) && (rect.y0 <= -level) && (rect.y1 >= level)) {
+      thisLevelInfo.allInside = true
+    } else if ((Math.sqrt(Math.pow(rect.x0, 2) + Math.pow(rect.y0, 2)) <= level) &&
+               (Math.sqrt(Math.pow(rect.x0, 2) + Math.pow(rect.y1, 2)) <= level) &&
+               (Math.sqrt(Math.pow(rect.x1, 2) + Math.pow(rect.y0, 2)) <= level) &&
+               (Math.sqrt(Math.pow(rect.x1, 2) + Math.pow(rect.y1, 2)) <= level)) {
+      // This finds the trivial case where the rectangle is enclosed by the circle.
+      // We'll pick up the case where the rectangle is outside the circle but doesn't intersect in the next section of code
+      thisLevelInfo.allOutside = true
     } else {
-      const angle = Math.atan(x / -y)
-      // D3 polar coordinates start at with 0 at 12 O Clock and increase clockwise
-      const segment = (x >= 0 && y < 0) ? 0 : (x >= 0 && y >= 0) ? Math.PI : (x < 0 && y >= 0) ? Math.PI : (Math.PI * 2)
-      answer.x = angle + segment
+      // Helper to check if a line segment intersects the circle
+      const checkIntersect = (linePos, lineStart, lineEnd, angleFunc, negativeAngle, posInside) => {
+        const intersect = Math.sqrt(Math.pow(level, 2) - Math.pow(linePos, 2))
+        if ((intersect >= lineStart) && (intersect <= lineEnd)) {
+          thisLevelInfo.intersectAngles.push({
+            angle: angleFunc(linePos / level),
+            inside: posInside
+          })
+        }
+        if ((-intersect >= lineStart) && (-intersect <= lineEnd)) {
+          thisLevelInfo.intersectAngles.push({
+            angle: negativeAngle - angleFunc(linePos / level),
+            inside: !posInside
+          })
+        }
+      }
+      checkIntersect(rect.x0, rect.y0, rect.y1, Math.asin, Math.PI, true)
+      checkIntersect(rect.x1, rect.y0, rect.y1, Math.asin, Math.PI, false)
+      checkIntersect(rect.y0, rect.x0, rect.x1, Math.acos, Math.PI * 2, false)
+      checkIntersect(rect.y1, rect.x0, rect.x1, Math.acos, Math.PI * 2, true)
+
+      // We want an array where angles are between 0 and 2*PI, sorted into order, with extra elements at the start/end for 0 and 2*PI to make check loops simpler
+      if (thisLevelInfo.intersectAngles.length === 0) {
+        thisLevelInfo.allOutside = true
+      } else {
+        thisLevelInfo.intersectAngles.forEach(d => {
+          if (d.angle < 0) {
+            d.angle = d.angle + 2 * Math.PI
+          }
+        })
+        thisLevelInfo.intersectAngles.sort((a, b) => a.angle - b.angle)
+        thisLevelInfo.intersectAngles.unshift({
+          angle: 0,
+          inside: !thisLevelInfo.intersectAngles[0].inside
+        })
+        thisLevelInfo.intersectAngles.push({
+          angle: 2 * Math.PI,
+          inside: thisLevelInfo.intersectAngles[0].inside
+        })
+      }
     }
-    return answer
+
+    levelInfo.push(thisLevelInfo)
   }
-  // Helper function to convert from polar coordinates that match the system used for the data (x0,y0) coordinates to screen (x,y) catesian
-  function cartesian (radians, radius) {
-    return {
-      x: radius * levelRadius * Math.sin(radians) + center.x,
-      y: center.y - radius * levelRadius * Math.cos(radians)
+
+  // Check if an arc falls completely inside the rectangle
+  function arcInside (angle0, angle1, radius) {
+    if ((radius > totalLevelsVisible + 1) || levelInfo[radius].allOutside) {
+      return false
+    } else if (levelInfo[radius].allInside) {
+      return true
+    } else {
+      var intersect = 0
+      while ((levelInfo[radius].intersectAngles[intersect + 1].angle < angle0)) {
+        intersect++
+      }
+      // We're inside if angle0 is inside and angle1 comes before the next rectangle intersection
+      return levelInfo[radius].intersectAngles[intersect].inside && (levelInfo[radius].intersectAngles[intersect + 1].angle >= angle1)
     }
   }
 
-  // Convert the rectangle into polar coordinates that we can compare with the (x0,y0) (x1,y1) coordinates on our objects
-  const rectPolar = [polar(rectangle.left, rectangle.top), polar(rectangle.left, rectangle.top + rectangle.height), polar(rectangle.left + rectangle.width, rectangle.top + rectangle.height), polar(rectangle.left + rectangle.width, rectangle.top)]
-
-  function pointInRect (point, rect) {
-    return (point.x >= rect.left) && (point.x <= (rect.left + rect.width)) && (point.y >= rect.top) && (point.y <= (rect.top + rect.height))
-  }
-
-  // Search all object data to compare coordinates
+  // Search all object data to check if arcs within the rectangle
   var markData = { markMode: markMode, indexSet: [] }
   arcG.selectAll('path').each(function (d) {
-    var intersect = false
-    // First check if any of the points of the rectangle fall within the arc (using polar coordinates)
-    const arcRectPolar = { left: d.x0, width: (d.x1 - d.x0), top: d.y0, height: (d.y1 - d.y0) }
-    for (var point = 0; point < 4; point++ && !intersect) {
-      intersect = intersect || pointInRect(rectPolar[point], arcRectPolar)
+    var marked = false
+    // If we've been zoomed, we need to use the target values rather than original
+    if (d.target) {
+      if (d.target.y1 > 0) {
+        marked = arcInside(d.target.x0, d.target.x1, d.target.y0) && arcInside(d.target.x0, d.target.x1, d.target.y1)
+      }
+    } else {
+      marked = arcInside(d.x0, d.x1, d.y0) && arcInside(d.x0, d.x1, d.y1)
     }
-    // Now check if any point of the arc is contained within the rectangle
-    intersect = intersect ||
-      pointInRect(cartesian(d.x0, d.y0), rectangle) ||
-      pointInRect(cartesian(d.x0, d.y1), rectangle) ||
-      pointInRect(cartesian(d.x1, d.y0), rectangle) ||
-      pointInRect(cartesian(d.x1, d.y1), rectangle)
-    // TODO - detect intersection with an edge
-
-    if (intersect) {
+    if (marked) {
       markData.indexSet = markData.indexSet.concat(d.indices)
     }
   })
+
+  // We want unique indices
+  // eslint-disable-next-line no-undef
+  markData.indexSet = [...new Set(markData.indexSet)]
 
   window.markIndices(markData)
 }
