@@ -19,6 +19,8 @@ var defs
 var labelG
 var margin = { left: 10, right: 10, top: 10, bottom: 10 }
 var size = { width: 0, height: 0 }
+var levelRadius
+var center
 // eslint-disable-next-line no-undef
 var arcUniqueIds = new Map()
 var colourDomain = []
@@ -38,7 +40,9 @@ JSVizHelper.SetupViz({
   render: render,
   renderOnResize: true,
   mark: {
-    type: JSVizHelper.markType.none
+    type: JSVizHelper.markType.callback,
+    ignoreClicks: true,
+    callback: markLasso
   },
   configuratorTitle: 'Sunburst Chart options',
   configuratorInstructions: [
@@ -249,10 +253,11 @@ function render (data, config) {
   // Figure out size
   size.width = parent.innerWidth() - margin.left - margin.right
   size.height = parent.innerHeight() - margin.top - margin.bottom
-  const radius = Math.min(size.width, size.height) / ((config.allowZoom ? config.levelsVisible : root.height) + 1) / 2
+  levelRadius = Math.min(size.width, size.height) / ((config.allowZoom ? config.levelsVisible : root.height) + 1) / 2
 
   // Coordinates are (0,0) at the center of the SVG
-  outerG.attr('transform', `translate(${size.width / 2 + margin.left},${size.height / 2 + margin.top})`)
+  center = { x: size.width / 2 + margin.left, y: size.height / 2 + margin.top }
+  outerG.attr('transform', `translate(${center.x},${center.y})`)
 
   // Colours - we track all data we ever see in case data is filtered and re-displayed
   const newColourDomain = root.children.map(x => x.name)
@@ -275,9 +280,9 @@ function render (data, config) {
     .startAngle(d => d.x0)
     .endAngle(d => d.x1)
     .padAngle(d => Math.min((d.x1 - d.x0) / 2, 0.005))
-    .padRadius(radius * 1.5)
-    .innerRadius(d => d.y0 * radius)
-    .outerRadius(d => Math.max(d.y0 * radius, d.y1 * radius - 1))
+    .padRadius(levelRadius * 1.5)
+    .innerRadius(d => d.y0 * levelRadius)
+    .outerRadius(d => Math.max(d.y0 * levelRadius, d.y1 * levelRadius - 1))
 
   // Draw the chart
   const mainTransition = d3.select('#js_chart').transition('main').duration(1000)
@@ -432,7 +437,7 @@ function render (data, config) {
       return 'rotate(0) translate(0,0) rotate(0)'
     } else {
       const x = (d.x0 + d.x1) / 2 * 180 / Math.PI
-      const y = (d.y0 + d.y1) / 2 * radius
+      const y = (d.y0 + d.y1) / 2 * levelRadius
       return `rotate(${x - 90}) translate(${y},0) rotate(${x < 180 ? 0 : 180})`
     }
   }
@@ -440,4 +445,69 @@ function render (data, config) {
   function arcOpacity (d, currentOrTarget) {
     return arcVisible(currentOrTarget) ? (d.children ? (d.marked ? 0.8 : (anyMarked ? 0.4 : 0.6)) : (d.marked ? 0.6 : (anyMarked ? 0.2 : 0.4))) : 0
   }
+}
+
+// Called when an area has been selected for marking.
+function markLasso (markMode, rectangle) {
+  // Add properties with DOM style names to our rectangle
+  rectangle.left = rectangle.x
+  rectangle.top = rectangle.y
+
+  // Helper function to convert screen (x,y) into polar coordinates that match the system used for the data (x0,y0) coordinates
+  function polar (x, y) {
+    x = x - center.x
+    y = y - center.y
+    var answer = {
+      x: 0,
+      y: Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2)) / levelRadius
+    }
+
+    if (x === 0) {
+      answer.x = (y >= 0) ? 0 : Math.PI
+    } else {
+      const angle = Math.atan(x / -y)
+      // D3 polar coordinates start at with 0 at 12 O Clock and increase clockwise
+      const segment = (x >= 0 && y < 0) ? 0 : (x >= 0 && y >= 0) ? Math.PI : (x < 0 && y >= 0) ? Math.PI : (Math.PI * 2)
+      answer.x = angle + segment
+    }
+    return answer
+  }
+  // Helper function to convert from polar coordinates that match the system used for the data (x0,y0) coordinates to screen (x,y) catesian
+  function cartesian (radians, radius) {
+    return {
+      x: radius * levelRadius * Math.sin(radians) + center.x,
+      y: center.y - radius * levelRadius * Math.cos(radians)
+    }
+  }
+
+  // Convert the rectangle into polar coordinates that we can compare with the (x0,y0) (x1,y1) coordinates on our objects
+  const rectPolar = [polar(rectangle.left, rectangle.top), polar(rectangle.left, rectangle.top + rectangle.height), polar(rectangle.left + rectangle.width, rectangle.top + rectangle.height), polar(rectangle.left + rectangle.width, rectangle.top)]
+
+  function pointInRect (point, rect) {
+    return (point.x >= rect.left) && (point.x <= (rect.left + rect.width)) && (point.y >= rect.top) && (point.y <= (rect.top + rect.height))
+  }
+
+  // Search all object data to compare coordinates
+  var markData = { markMode: markMode, indexSet: [] }
+  arcG.selectAll('path').each(function (d) {
+    var intersect = false
+    // First check if any of the points of the rectangle fall within the arc (using polar coordinates)
+    const arcRectPolar = { left: d.x0, width: (d.x1 - d.x0), top: d.y0, height: (d.y1 - d.y0) }
+    for (var point = 0; point < 4; point++ && !intersect) {
+      intersect = intersect || pointInRect(rectPolar[point], arcRectPolar)
+    }
+    // Now check if any point of the arc is contained within the rectangle
+    intersect = intersect ||
+      pointInRect(cartesian(d.x0, d.y0), rectangle) ||
+      pointInRect(cartesian(d.x0, d.y1), rectangle) ||
+      pointInRect(cartesian(d.x1, d.y0), rectangle) ||
+      pointInRect(cartesian(d.x1, d.y1), rectangle)
+    // TODO - detect intersection with an edge
+
+    if (intersect) {
+      markData.indexSet = markData.indexSet.concat(d.indices)
+    }
+  })
+
+  window.markIndices(markData)
 }
