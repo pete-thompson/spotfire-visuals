@@ -209,13 +209,15 @@ window.JSViz = {
       .click(function (e) {
         e.stopPropagation()
 
-        lastDataData.forEach(function (row) {
-          row.items.forEach(function (item, index) {
-            if (typeof item === 'number') {
-              row.items[index] = Math.random() * 100
-            }
+        if (lastDataData) {
+          lastDataData.forEach(function (row) {
+            row.items.forEach(function (item, index) {
+              if (typeof item === 'number') {
+                row.items[index] = Math.random() * 100
+              }
+            })
           })
-        })
+        }
 
         sfData.data = lastDataData
 
@@ -227,9 +229,11 @@ window.JSViz = {
       .click(function (e) {
         e.stopPropagation()
 
-        lastDataData = lastDataData.filter(function () {
-          return (Math.random() > 0.5)
-        })
+        if (lastDataData) {
+          lastDataData = lastDataData.filter(function () {
+            return (Math.random() > 0.5)
+          })
+        }
 
         sfData.data = lastDataData
 
@@ -241,9 +245,23 @@ window.JSViz = {
       .click(function (e) {
         e.stopPropagation()
 
-        lastDataData.forEach(function (row) {
-          row.hints.marked = (Math.random() > 0.5)
-        })
+        if (lastDataData) {
+          lastDataData.forEach(function (row) {
+            row.hints.marked = (Math.random() > 0.5)
+          })
+        }
+
+        sfData.data = lastDataData
+
+        window.renderCore(sfData)
+      })
+
+    $('<button>').appendTo(testButtons)
+      .text('Clear data')
+      .click(function (e) {
+        e.stopPropagation()
+
+        lastDataData = []
 
         sfData.data = lastDataData
 

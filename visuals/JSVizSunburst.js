@@ -27,6 +27,7 @@ var colourDomain = []
 var modeButton
 var zoomMode = 'zoom'
 var totalLevelsVisible
+var currentCenter
 
 var defaultConfig = {
   valueFormat: ',d',
@@ -207,7 +208,6 @@ function render (data, config) {
   // value - the total value of all rows within the node
   var anyMarked = false
   root.each(d => {
-    d.current = d
     d.name = d.data[0]
     d.path = d.ancestors().map(d => d.name).reverse().join('/').substr(1)
     if (d.children) {
@@ -230,10 +230,10 @@ function render (data, config) {
 
   // Trim out any nodes with no name - supports sparse hierarchies in data presented as rows/columns
   root.name = ''
-  function filterData (data, id) {
+  function filterData (data) {
     var r = data.filter(function (o) {
       if (o.children) {
-        o.children = filterData(o.children, id)
+        o.children = filterData(o.children)
         if (o.children.length === 0) {
           delete o.children
         }
@@ -249,11 +249,25 @@ function render (data, config) {
   const partition = d3.partition().size([2 * Math.PI, root.height + 1])
   root = partition(root)
 
+  // Check if currently zoomed center is still in the data, set new center appropriately
+  if (!currentCenter) currentCenter = root
+
   // Figure out size
   size.width = parent.innerWidth() - margin.left - margin.right
   size.height = parent.innerHeight() - margin.top - margin.bottom
   totalLevelsVisible = config.allowZoom ? config.levelsVisible : root.height
   levelRadius = Math.min(size.width, size.height) / (totalLevelsVisible + 1) / 2
+
+  // Recalculate the current position based on current object at the center
+  // Handles situations where data changes (e.g. marking) after zoom
+  root.each(d => {
+    d.current = {
+      x0: Math.max(0, Math.min(1, (d.x0 - currentCenter.x0) / (currentCenter.x1 - currentCenter.x0))) * 2 * Math.PI,
+      x1: Math.max(0, Math.min(1, (d.x1 - currentCenter.x0) / (currentCenter.x1 - currentCenter.x0))) * 2 * Math.PI,
+      y0: Math.max(0, d.y0 - currentCenter.depth),
+      y1: Math.max(0, d.y1 - currentCenter.depth)
+    }
+  })
 
   // Coordinates are (0,0) at the center of the SVG
   center = { x: size.width / 2 + margin.left, y: size.height / 2 + margin.top }
@@ -378,6 +392,7 @@ function render (data, config) {
         if ((p.target) && (p.target.y0 === 0)) {
           p = p.parent
         }
+        currentCenter = p
 
         // Update 'target' on all data associated with arcs (note, not using the root variable since arcs from a previous render won't link to the root objects)
         arcsMerge.data().forEach(d => {
@@ -385,15 +400,14 @@ function render (data, config) {
             x0: Math.max(0, Math.min(1, (d.x0 - p.x0) / (p.x1 - p.x0))) * 2 * Math.PI,
             x1: Math.max(0, Math.min(1, (d.x1 - p.x0) / (p.x1 - p.x0))) * 2 * Math.PI,
             y0: Math.max(0, d.y0 - p.depth),
-            y1: Math.max(0, d.y1 - p.depth),
-            name: d.name
+            y1: Math.max(0, d.y1 - p.depth)
           }
         })
 
         // Transition the data on all arcs, even the ones that aren’t visible,
         // so that if this transition is interrupted, entering arcs will start
         // the next transition from the desired position.
-        const clickTransition = d3.select('#js_chart').transition('main').duration(1000)
+        const clickTransition = d3.select('#js_chart').transition('main').duration(500)
         clipPathPaths.transition(clickTransition)
           .tween('data', d => {
             const i = d3.interpolate(d.current, d.target)
@@ -530,7 +544,8 @@ function markLasso (markMode, rectangle) {
 
   // Check if an arc falls completely inside the rectangle
   function arcInside (angle0, angle1, radius) {
-    if ((radius > totalLevelsVisible + 1) || levelInfo[radius].allOutside) {
+    // Allow for rounding errors in angle calculations
+    if ((radius > totalLevelsVisible + 1) || levelInfo[radius].allOutside || (angle1 <= angle0 + Math.pow(10, -6))) {
       return false
     } else if (levelInfo[radius].allInside) {
       return true
@@ -547,16 +562,7 @@ function markLasso (markMode, rectangle) {
   // Search all object data to check if arcs within the rectangle
   var markData = { markMode: markMode, indexSet: [] }
   arcG.selectAll('path').each(function (d) {
-    var marked = false
-    // If we've been zoomed, we need to use the target values rather than original
-    if (d.target) {
-      if (d.target.y1 > 0) {
-        marked = arcInside(d.target.x0, d.target.x1, d.target.y0) && arcInside(d.target.x0, d.target.x1, d.target.y1)
-      }
-    } else {
-      marked = arcInside(d.x0, d.x1, d.y0) && arcInside(d.x0, d.x1, d.y1)
-    }
-    if (marked) {
+    if ((d.current.y1 > 0) && arcInside(d.current.x0, d.current.x1, d.current.y0) && arcInside(d.current.x0, d.current.x1, d.current.y1)) {
       markData.indexSet = markData.indexSet.concat(d.indices)
     }
   })
