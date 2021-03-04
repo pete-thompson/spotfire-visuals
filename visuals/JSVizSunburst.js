@@ -21,13 +21,21 @@ var margin = { left: 10, right: 10, top: 10, bottom: 10 }
 var size = { width: 0, height: 0 }
 var levelRadius
 var center
+var lastConfig
 // eslint-disable-next-line no-undef
 var arcUniqueIds = new Map()
 var colourDomain = []
 var modeButton
 var zoomMode = 'zoom'
 var totalLevelsVisible
-var currentCenter
+var anyMarked
+var currentCenterPath
+var clipPathsMerge
+var arcsMerge
+var labelMerge
+// eslint-disable-next-line no-undef
+var D3data = new Map()
+var arc
 
 var defaultConfig = {
   valueFormat: ',d',
@@ -187,6 +195,8 @@ function enableDisableZoom (enabled) {
 
 // Main render method
 function render (data, config) {
+  lastConfig = config
+
   // Update the default fill color (particularly for text) in case theme changes
   svg.attr('fill', $('body').css('color'))
 
@@ -202,11 +212,18 @@ function render (data, config) {
   const group = d3.rollup(data.data, v => { return { indices: v.map(x => x.hints.index), marked: v.reduce((a, b) => a || b.hints.marked, false), value: v.reduce((a, b) => a + b.items[columnCount - 1], 0) } }, ...grouping)
   var root = d3.hierarchy(group)
 
+  // Check for an empty visual
+  if (root.height === 0) {
+    JSVizHelper.showMessageInstead('No data to show')
+    return
+  }
+
   // Now simplify the hierarchy object - ensure each node has:
   // name - the text to show
   // hints - an array of row hints for marking
   // value - the total value of all rows within the node
-  var anyMarked = false
+  anyMarked = false
+  var currentCenter
   root.each(d => {
     d.name = d.data[0]
     d.path = d.ancestors().map(d => d.name).reverse().join('/').substr(1)
@@ -226,6 +243,7 @@ function render (data, config) {
       d.marked = d.data[1].marked
     }
     anyMarked = anyMarked || d.marked
+    if ((currentCenterPath === d.path) && (currentCenterPath !== '')) currentCenter = d
   })
 
   // Trim out any nodes with no name - supports sparse hierarchies in data presented as rows/columns
@@ -238,7 +256,7 @@ function render (data, config) {
           delete o.children
         }
       }
-      return o.name !== null
+      return o.data[0] !== null
     })
     return r
   }
@@ -249,14 +267,42 @@ function render (data, config) {
   const partition = d3.partition().size([2 * Math.PI, root.height + 1])
   root = partition(root)
 
+  // D3 data joining relies on using the same JavaScript object across calls to the render method
+  // We use this helper to keep a single set of objects that can be joined in D3 selections
+  // across multiple renders
+  D3data.forEach((value) => { value.present = false })
+  root.descendants().slice(1).forEach(d => {
+    if (D3data.has(d.path)) {
+      const existing = D3data.get(d.path)
+      existing.object = d
+      existing.present = true
+    } else {
+      D3data.set(d.path, { path: d.path, object: d, present: true })
+    }
+  })
+  const D3DataArray = []
+  D3data.forEach((value) => { if (value.present) D3DataArray.push(value) })
+
   // Check if currently zoomed center is still in the data, set new center appropriately
-  if (!currentCenter) currentCenter = root
+  if (!currentCenter) {
+    currentCenterPath = root.path
+    currentCenter = root
+  }
 
   // Figure out size
   size.width = parent.innerWidth() - margin.left - margin.right
   size.height = parent.innerHeight() - margin.top - margin.bottom
   totalLevelsVisible = config.allowZoom ? config.levelsVisible : root.height
   levelRadius = Math.min(size.width, size.height) / (totalLevelsVisible + 1) / 2
+
+  // The shape to draw
+  arc = d3.arc()
+    .startAngle(d => d.x0)
+    .endAngle(d => d.x1)
+    .padAngle(d => Math.min((d.x1 - d.x0) / 2, 0.005))
+    .padRadius(levelRadius * 1.5)
+    .innerRadius(d => d.y0 * levelRadius)
+    .outerRadius(d => Math.max(d.y0 * levelRadius, d.y1 * levelRadius - 1))
 
   // Recalculate the current position based on current object at the center
   // Handles situations where data changes (e.g. marking) after zoom
@@ -289,71 +335,68 @@ function render (data, config) {
     }
   })
 
-  // The shape to draw
-  const arc = d3.arc()
-    .startAngle(d => d.x0)
-    .endAngle(d => d.x1)
-    .padAngle(d => Math.min((d.x1 - d.x0) / 2, 0.005))
-    .padRadius(levelRadius * 1.5)
-    .innerRadius(d => d.y0 * levelRadius)
-    .outerRadius(d => Math.max(d.y0 * levelRadius, d.y1 * levelRadius - 1))
-
   // Draw the chart
   const mainTransition = d3.select('#js_chart').transition('main').duration(1000)
   const markingTransition = d3.select('#js_chart').transition('marking').duration(200)
 
   // First some defs to use to clip the text to arcs
   const clipPaths = defs.selectAll('clipPath')
-    .data(root.descendants().slice(1), (d) => d.path)
+    .data(D3DataArray, (d) => d ? 'clippath-' + arcUniqueIds.get(d.path) : this.id)
 
   clipPaths.exit()
     .remove()
 
-  const clipPathsEnterPaths = clipPaths.enter()
+  const clipPathsEnter = clipPaths.enter()
     .append('clipPath')
-    .attr('id', d => 'arc-' + arcUniqueIds.get(d.path))
-    .append('path')
-    .attr('d', d => arc(d.current))
+    .attr('id', d => 'clippath-' + arcUniqueIds.get(d.path))
+
+  clipPathsEnter.append('path')
+    .attr('d', d => arc(d.object.current))
 
   // We only transition those that already exist
   clipPaths.select('path')
     .transition(mainTransition)
-    .attr('d', d => arc(d.current))
+    .attr('d', d => arc(d.object.current))
 
-  const clipPathPaths = clipPaths.select('path').merge(clipPathsEnterPaths)
+  clipPathsMerge = clipPaths.merge(clipPathsEnter)
 
   // Now the arcs themselves
   const arcs = arcG.selectAll('path')
-    .data(root.descendants().slice(1), (d) => d.path)
+    .data(D3DataArray, (d) => d ? 'arc-' + arcUniqueIds.get(d.path) : this.id)
 
   arcs.exit()
     .remove()
 
   const arcsEnter = arcs.enter()
     .append('path')
-    .attr('fill', d => { while (d.depth > 1) { d = d.parent } return color(d.name) })
-    .attr('fill-opacity', d => arcOpacity(d, d.current))
-    .attr('d', d => arc(d.current))
+    .attr('id', d => 'arc-' + arcUniqueIds.get(d.path))
+    .attr('fill', d => {
+      d = d.object
+      while (d.depth > 1) { d = d.parent }
+      return color(d.name)
+    })
+    .attr('fill-opacity', d => arcOpacity(d.object, d.object.current))
+    .attr('d', d => arc(d.object.current))
     .on('click', clicked)
 
   const arcsEnterTitle = arcsEnter.append('title')
 
-  const arcsMerge = arcs.merge(arcsEnter)
+  arcsMerge = arcs.merge(arcsEnter)
 
   // We only transition those that already exist
   arcs.transition(mainTransition)
-    .attr('d', d => arc(d.current))
+    .attr('d', d => arc(d.object.current))
 
   arcs.transition(markingTransition)
-    .attr('fill-opacity', d => arcOpacity(d, d.current))
+    .attr('fill-opacity', d => arcOpacity(d.object, d.object.current))
 
   // Tooltips (no transition)
   arcs.select('title')
     .merge(arcsEnterTitle)
-    .text(d => `${d.path}\n${format(d.value)}`)
+    .text(d => `${d.path}\n${format(d.object.value)}`)
 
   const label = labelG.selectAll('g')
-    .data(root.descendants().slice(1), (d) => d.path)
+    .data(D3DataArray, (d) => d ? 'label-' + arcUniqueIds.get(d.path) : this.id)
 
   label.exit()
     .remove()
@@ -361,105 +404,114 @@ function render (data, config) {
   // We use a G to set the clip path
   const labelEnter = label.enter()
     .append('g')
-    .style('clip-path', d => `url(#${'arc-' + arcUniqueIds.get(d.path)})`)
+    .attr('id', d => 'label-' + arcUniqueIds.get(d.path))
+    .style('clip-path', d => `url(#${'clippath-' + arcUniqueIds.get(d.path)})`)
 
   // Now we can use Text with a transform - otherwise the transform applies to the clip path and nothing appears
-  const labelEnterText = labelEnter.append('text')
+  labelEnter.append('text')
     .attr('dy', '0.35em')
-    .text(d => d.name)
-    .attr('fill-opacity', d => +labelVisible(d.current))
-    .attr('transform', d => labelTransform(d.current))
+    .text(d => d.object.name)
+    .attr('fill-opacity', d => +labelVisible(d.object.current))
+    .attr('transform', d => labelTransform(d.object.current))
 
-  const labelTextMerge = label.select('text').merge(labelEnterText)
+  labelMerge = label.merge(labelEnter)
 
   // We only transition those that already exist
   label.select('text')
     .transition(mainTransition)
-    .attr('fill-opacity', d => +labelVisible(d.current))
-    .attr('transform', d => labelTransform(d.current))
-    .style('font-weight', d => d.marked ? 'bold' : '')
+    .attr('fill-opacity', d => +labelVisible(d.object.current))
+    .attr('transform', d => labelTransform(d.object.current))
+    .style('font-weight', d => d.object.marked ? 'bold' : '')
+}
 
-  function clicked (p) {
-    currentEvent.stopPropagation()
-    // check for marking or zoom
-    if (zoomMode === 'mark') {
-      var markData = { markMode: JSVizHelper.getMarkMode(currentEvent), indexSet: p.indices }
-      window.markIndices(markData)
-    } else {
-      // zooming only available for arcs with children
-      if (p.children) {
-        // Check if we clicked on the center
-        if ((p.target) && (p.target.y0 === 0)) {
-          p = p.parent
+function clicked (p) {
+  currentEvent.stopPropagation()
+  // check for marking or zoom
+  if (zoomMode === 'mark') {
+    var markData = { markMode: JSVizHelper.getMarkMode(currentEvent), indexSet: p.indices }
+    window.markIndices(markData)
+  } else {
+    // Grab the actual object
+    p = p.object
+    // Check if we clicked on the center
+    if ((p.current.y0 === 0) || ((p.target) && (p.target.y0 === 0))) {
+      p = p.parent
+    }
+    // zooming only available for arcs with children (or center if all children have been filtered out)
+    if (p.children) {
+      currentCenterPath = p.path
+
+      // Update 'target' on all data
+      D3data.forEach(d => {
+        d.object.target = {
+          x0: Math.max(0, Math.min(1, (d.object.x0 - p.x0) / (p.x1 - p.x0))) * 2 * Math.PI,
+          x1: Math.max(0, Math.min(1, (d.object.x1 - p.x0) / (p.x1 - p.x0))) * 2 * Math.PI,
+          y0: Math.max(0, d.object.y0 - p.depth),
+          y1: Math.max(0, d.object.y1 - p.depth)
         }
-        currentCenter = p
+      })
 
-        // Update 'target' on all data associated with arcs (note, not using the root variable since arcs from a previous render won't link to the root objects)
-        arcsMerge.data().forEach(d => {
-          d.target = {
-            x0: Math.max(0, Math.min(1, (d.x0 - p.x0) / (p.x1 - p.x0))) * 2 * Math.PI,
-            x1: Math.max(0, Math.min(1, (d.x1 - p.x0) / (p.x1 - p.x0))) * 2 * Math.PI,
-            y0: Math.max(0, d.y0 - p.depth),
-            y1: Math.max(0, d.y1 - p.depth)
-          }
+      // Transition the data on all arcs, even the ones that aren’t visible,
+      // so that if this transition is interrupted, entering arcs will start
+      // the next transition from the desired position.
+      const clickTransition = d3.select('#js_chart').transition('main').duration(500)
+      clipPathsMerge.transition(clickTransition)
+        .select('path')
+        // .tween('data', d => {
+        //   const i = d3.interpolate(d.object.current, d.object.target)
+        //   return t => { d.object.current = i(t) }
+        // })
+        .attrTween('d', d => () => arc(d.object.current))
+
+      arcsMerge.transition(clickTransition)
+        .tween('data', d => {
+          const i = d3.interpolate(d.object.current, d.object.target)
+          return t => { d.object.current = i(t) }
         })
+        .filter(function (d) {
+          return +this.getAttribute('fill-opacity') || arcVisible(d.object.target)
+        })
+        .attr('fill-opacity', d => arcOpacity(d.object, d.object.target))
+        .attrTween('d', d => () => arc(d.object.current))
 
-        // Transition the data on all arcs, even the ones that aren’t visible,
-        // so that if this transition is interrupted, entering arcs will start
-        // the next transition from the desired position.
-        const clickTransition = d3.select('#js_chart').transition('main').duration(500)
-        clipPathPaths.transition(clickTransition)
-          .tween('data', d => {
-            const i = d3.interpolate(d.current, d.target)
-            return t => { d.current = i(t) }
-          })
-          .attrTween('d', d => () => arc(d.current))
-
-        arcsMerge.transition(clickTransition)
-          .tween('data', d => {
-            const i = d3.interpolate(d.current, d.target)
-            return t => { d.current = i(t) }
-          })
-          .filter(function (d) {
-            return +this.getAttribute('fill-opacity') || arcVisible(d.target)
-          })
-          .attr('fill-opacity', d => arcOpacity(d, d.target))
-          .attrTween('d', d => () => arc(d.current))
-
-        // Transition for labels when we click
-        labelTextMerge.filter(function (d) {
-          return +this.getAttribute('fill-opacity') || labelVisible(d.target)
-        }).transition(clickTransition)
-          .attr('fill-opacity', d => +labelVisible(d.target))
-          .attr('transform', d => labelTransform(d.target))
-      }
+      // Transition for labels when we click
+      labelMerge.transition(clickTransition)
+        .select('text')
+        .attr('fill-opacity', d => {
+          // console.info(d.path, +labelVisible(d.object.target), d)
+          // console.info(d.path, d)
+          // console.info(d)
+          return labelVisible(d.object.target) ? 1 : 0
+        })
+        .attr('transform', d =>
+          labelTransform(d.object.target))
     }
   }
+}
 
-  // Only visible if in first n levels or zoom off
-  function arcVisible (d) {
-    return (!config.allowZoom || (d.y1 <= (config.levelsVisible + 1))) && d.y0 >= 0 && d.x1 > d.x0
-  }
+// Only visible if in first n levels or zoom off
+function arcVisible (d) {
+  return (!lastConfig.allowZoom || (d.y1 <= (lastConfig.levelsVisible + 1))) && d.y0 >= 0 && d.x1 > d.x0
+}
 
-  // Only visible if in first n levels or zoom off and it's a reasonably large arc
-  function labelVisible (d) {
-    return (!config.allowZoom || (d.y1 <= (config.levelsVisible + 1) && d.y0 >= 0)) && (d.y1 - d.y0) * (d.x1 - d.x0) > 0.03
-  }
+// Only visible if in first n levels or zoom off and it's a reasonably large arc
+function labelVisible (d) {
+  return (!lastConfig.allowZoom || (d.y1 <= (lastConfig.levelsVisible + 1) && d.y0 >= 0)) && (d.y1 - d.y0) * (d.x1 - d.x0) > 0.03
+}
 
-  // Calculate appropriate rotation and translation to position the label
-  function labelTransform (d) {
-    if (d.y0 === 0) {
-      return 'rotate(0) translate(0,0) rotate(0)'
-    } else {
-      const x = (d.x0 + d.x1) / 2 * 180 / Math.PI
-      const y = (d.y0 + d.y1) / 2 * levelRadius
-      return `rotate(${x - 90}) translate(${y},0) rotate(${x < 180 ? 0 : 180})`
-    }
+// Calculate appropriate rotation and translation to position the label
+function labelTransform (d) {
+  if (d.y0 === 0) {
+    return 'rotate(0) translate(0,0) rotate(0)'
+  } else {
+    const x = (d.x0 + d.x1) / 2 * 180 / Math.PI
+    const y = (d.y0 + d.y1) / 2 * levelRadius
+    return `rotate(${x - 90}) translate(${y},0) rotate(${x < 180 ? 0 : 180})`
   }
+}
 
-  function arcOpacity (d, currentOrTarget) {
-    return arcVisible(currentOrTarget) ? (d.children ? (d.marked ? 0.8 : (anyMarked ? 0.4 : 0.6)) : (d.marked ? 0.6 : (anyMarked ? 0.2 : 0.4))) : 0
-  }
+function arcOpacity (d, currentOrTarget) {
+  return arcVisible(currentOrTarget) ? (d.children ? (d.marked ? 0.8 : (anyMarked ? 0.4 : 0.6)) : (d.marked ? 0.6 : (anyMarked ? 0.2 : 0.4))) : 0
 }
 
 // Called when an area has been selected for marking.
