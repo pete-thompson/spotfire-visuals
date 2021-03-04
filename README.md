@@ -62,6 +62,11 @@ A Sankey chart is a type of flow diagram, in which the width of the arrows is sh
 
 ![](/images/sankey.gif)
 
+A Sunburst chart shows hierachical data in a multi-level Pie chart. The chart can be configured to show all levels of the hierarchy, or to allow a user to zoom up and down the hierarchy.
+[This link](https://pete-thompson.github.io/spotfire-visuals/Test%20Harness/Tester-Sunburst.html) opens a live 'demo' using our test harness (i.e. without Spotfire).
+
+![](/images/sunburst.gif)
+
 Word clouds are often used to show how often specific words or phrases appear in a dataset. They can also be used for simple presentation reasons (e.g. to show a list of recent achievements).
 [This link](https://pete-thompson.github.io/spotfire-visuals/Test%20Harness/Tester-WordCloud.html) opens a live 'demo' using our test harness (i.e. without Spotfire).
 
@@ -90,9 +95,11 @@ It is also easy to write one-off custom visuals using the framework on top of JS
 * Automatically creates DOM elements to house the visualisation - the wrapper HTML script can be very simple.
 * Captures any requests that would normally be sent to the Spotfire servers and writes them to the JavaScript console.
 * Handles marking requests that would normally be sent to the server and responds by causing the visualisation to re-render with the appropriate rows marked.
-* Adds a button on the page that simulates switching between light and dark Spotfire themes.
-* Adds a button on the page that simulates enabling/disabling the legend.
-* Adds a button on the page that randomises the data being sent to the visualisation (detects any numeric columns and places random values into them).
+* Adds a button that simulates switching between light and dark Spotfire themes.
+* Adds a button that simulates enabling/disabling the legend.
+* Adds a button that randomises the data being sent to the visualisation (detects any numeric columns and places random values into them).
+* Adds a button to test sending an empty dataset to the visualisation.
+* Adds buttons to simulate filtering the data and to restore the original data.
 
 ## Features of JSVizHelper
 
@@ -123,6 +130,8 @@ The `options` object must at a minimum provide rendering function(s), but can al
 >`defaultConfig` - an object that contains defaults for any configuration parameters. JSVizHelper will combine this with any configuration sent from Spotfire - 
 thus this can be used to ensure that the `config` object always contains values for expected properties.
 
+>`configButton` - Specifies where the configuration button should appear - either configButton.textLeft or configButton.gearRight (defaults to textLeft)
+
 >`render` - A function that will be called when the visualisation is to be rendered, parameters are the data from spotfire and a configuration object where the default has been combined with the values from Spotfire.
 
 >`firstTimeSetup` - A function that will be called the first time a visualisation is to be rendered, same parameters as render. 
@@ -133,12 +142,13 @@ thus this can be used to ensure that the `config` object always contains values 
 >but if the rendering algorithm relies on the window size we can set this flag to force the render function to be called.
 
 >`mark` - Either a function that conforms to the JSViz markModel signature, or an object defining selection using one of the helper approaches.
->The object should be of the form `{ selector: <jQuery selector for objects of interest>, type: <the algorithm> }`.
+>The object should be of the form `{ selector: <jQuery selector for objects of interest>, type: <the algorithm>, ignoreClicks: <ignore click events for marking>, callback: <callback function> }`.
 >The helper approaches rely on finding elements in the DOM which contain a 'data-id' attribute which matches the 'row hint' from the Spotfire data.
 >Available algorithms are:
 >>`JSVizHelper.markType.rect` - Simple HTML rectangle intersection - selector identifies all elements that will be checked for rectangle intersection.
->>
->>`JSVizHelper.markType.svg` - SVG intersection detection (deals with any shape) - selector should be the svg element itself - note that there is a webkit bug meaning that Safari and Chrome match based on bounding boxes rather than on the actual drawing content.
+>>`JSVizHelper.markType.svg` - SVG intersection detection (deals with any shape) - selector should be the svg element itself - note that there is a webkit bug meaning that Safari and Chrome match based on bounding boxes rather than on the actual drawing 
+content.
+>>`JSVizHelper.markType.callback` - The callback function will receive the marking mode and the rectangle for marking.
 
 >`configuratorTitle` - The title shown when the configurator dialog is shown
 
