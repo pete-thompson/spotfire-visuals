@@ -130,6 +130,8 @@ The `options` object must at a minimum provide rendering function(s), but can al
 >`defaultConfig` - an object that contains defaults for any configuration parameters. JSVizHelper will combine this with any configuration sent from Spotfire - 
 thus this can be used to ensure that the `config` object always contains values for expected properties.
 
+>`configButton` - Specifies where the configuration button should appear - either configButton.textLeft or configButton.gearRight (defaults to textLeft)
+
 >`render` - A function that will be called when the visualisation is to be rendered, parameters are the data from spotfire and a configuration object where the default has been combined with the values from Spotfire.
 
 >`firstTimeSetup` - A function that will be called the first time a visualisation is to be rendered, same parameters as render. 
