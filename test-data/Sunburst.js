@@ -3046,7 +3046,7 @@ function getTestData() {
                 }
             ],
             "additionalTables": [],
-            "user": "q707296@quintiles.net",
+            "user": "dummy@dummy",
             "static": false,
             "wait": 0,
             "runtime": {},
