@@ -267,22 +267,6 @@ function render (data, config) {
   const partition = d3.partition().size([2 * Math.PI, root.height + 1])
   root = partition(root)
 
-  // D3 data joining relies on using the same JavaScript object across calls to the render method
-  // We use this helper to keep a single set of objects that can be joined in D3 selections
-  // across multiple renders
-  D3data.forEach((value) => { value.present = false })
-  root.descendants().slice(1).forEach(d => {
-    if (D3data.has(d.path)) {
-      const existing = D3data.get(d.path)
-      existing.object = d
-      existing.present = true
-    } else {
-      D3data.set(d.path, { path: d.path, object: d, present: true })
-    }
-  })
-  const D3DataArray = []
-  D3data.forEach((value) => { if (value.present) D3DataArray.push(value) })
-
   // Check if currently zoomed center is still in the data, set new center appropriately
   if (!currentCenter) {
     currentCenterPath = root.path
@@ -304,16 +288,23 @@ function render (data, config) {
     .innerRadius(d => d.y0 * levelRadius)
     .outerRadius(d => Math.max(d.y0 * levelRadius, d.y1 * levelRadius - 1))
 
-  // Recalculate the current position based on current object at the center
-  // Handles situations where data changes (e.g. marking) after zoom
-  root.each(d => {
-    d.current = {
-      x0: Math.max(0, Math.min(1, (d.x0 - currentCenter.x0) / (currentCenter.x1 - currentCenter.x0))) * 2 * Math.PI,
-      x1: Math.max(0, Math.min(1, (d.x1 - currentCenter.x0) / (currentCenter.x1 - currentCenter.x0))) * 2 * Math.PI,
-      y0: Math.max(0, d.y0 - currentCenter.depth),
-      y1: Math.max(0, d.y1 - currentCenter.depth)
+  // D3 data joining relies on using the same JavaScript object across calls to the render method
+  // We use this helper to keep a single set of objects that can be joined in D3 selections
+  // across multiple renders
+  D3data.forEach((value) => { value.present = false })
+  root.descendants().slice(1).forEach(d => {
+    if (D3data.has(d.path)) {
+      const existing = D3data.get(d.path)
+      d.current = existing.object.current
+      existing.object = d
+      existing.present = true
+    } else {
+      d.current = { x0: 0, x1: 0, y0: 0, y1: 0 }
+      D3data.set(d.path, { path: d.path, object: d, present: true })
     }
   })
+  const D3DataArray = []
+  D3data.forEach((value) => { if (value.present) D3DataArray.push(value) })
 
   // Coordinates are (0,0) at the center of the SVG
   center = { x: size.width / 2 + margin.left, y: size.height / 2 + margin.top }
@@ -336,30 +327,6 @@ function render (data, config) {
   })
 
   // Draw the chart
-  const mainTransition = d3.select('#js_chart').transition('main').duration(1000)
-  const markingTransition = d3.select('#js_chart').transition('marking').duration(200)
-
-  // First some defs to use to clip the text to arcs
-  const clipPaths = defs.selectAll('clipPath')
-    .data(D3DataArray, (d) => d ? 'clippath-' + arcUniqueIds.get(d.path) : this.id)
-
-  clipPaths.exit()
-    .remove()
-
-  const clipPathsEnter = clipPaths.enter()
-    .append('clipPath')
-    .attr('id', d => 'clippath-' + arcUniqueIds.get(d.path))
-
-  clipPathsEnter.append('path')
-    .attr('d', d => arc(d.object.current))
-
-  // We only transition those that already exist
-  clipPaths.select('path')
-    .transition(mainTransition)
-    .attr('d', d => arc(d.object.current))
-
-  clipPathsMerge = clipPaths.merge(clipPathsEnter)
-
   // Now the arcs themselves
   const arcs = arcG.selectAll('path')
     .data(D3DataArray, (d) => d ? 'arc-' + arcUniqueIds.get(d.path) : this.id)
@@ -375,33 +342,39 @@ function render (data, config) {
       while (d.depth > 1) { d = d.parent }
       return color(d.name)
     })
-    .attr('fill-opacity', d => arcOpacity(d.object, d.object.current))
-    .attr('d', d => arc(d.object.current))
     .on('click', clicked)
 
   const arcsEnterTitle = arcsEnter.append('title')
 
   arcsMerge = arcs.merge(arcsEnter)
 
-  // We only transition those that already exist
-  arcs.transition(mainTransition)
-    .attr('d', d => arc(d.object.current))
-
-  arcs.transition(markingTransition)
-    .attr('fill-opacity', d => arcOpacity(d.object, d.object.current))
-
   // Tooltips (no transition)
   arcs.select('title')
     .merge(arcsEnterTitle)
     .text(d => `${d.path}\n${format(d.object.value)}`)
 
+  // some defs to use to clip the text to arcs
+  const clipPaths = defs.selectAll('clipPath')
+    .data(D3DataArray, (d) => d ? 'clippath-' + arcUniqueIds.get(d.path) : this.id)
+
+  clipPaths.exit()
+    .remove()
+
+  const clipPathsEnter = clipPaths.enter()
+    .append('clipPath')
+    .attr('id', d => 'clippath-' + arcUniqueIds.get(d.path))
+
+  clipPathsEnter.append('path')
+
+  clipPathsMerge = clipPaths.merge(clipPathsEnter)
+
+  // We use a G to set the clip path
   const label = labelG.selectAll('g')
     .data(D3DataArray, (d) => d ? 'label-' + arcUniqueIds.get(d.path) : this.id)
 
   label.exit()
     .remove()
 
-  // We use a G to set the clip path
   const labelEnter = label.enter()
     .append('g')
     .attr('id', d => 'label-' + arcUniqueIds.get(d.path))
@@ -411,16 +384,55 @@ function render (data, config) {
   labelEnter.append('text')
     .attr('dy', '0.35em')
     .text(d => d.object.name)
-    .attr('fill-opacity', d => +labelVisible(d.object.current))
-    .attr('transform', d => labelTransform(d.object.current))
 
   labelMerge = label.merge(labelEnter)
 
-  // We only transition those that already exist
-  label.select('text')
-    .transition(mainTransition)
-    .attr('fill-opacity', d => +labelVisible(d.object.current))
-    .attr('transform', d => labelTransform(d.object.current))
+  transitionEverything(currentCenter, 1000)
+}
+
+// At the end of the transition the 'current' values will have transitioned to match the 'target'
+// allowing us to use them for the next set of transitions
+function transitionEverything (currentCenter, duration) {
+  // Recalculate the target position based on current object at the center
+  currentCenterPath = currentCenter.path
+  D3data.forEach(d => {
+    d.object.target = {
+      x0: Math.max(0, Math.min(1, (d.object.x0 - currentCenter.x0) / (currentCenter.x1 - currentCenter.x0))) * 2 * Math.PI,
+      x1: Math.max(0, Math.min(1, (d.object.x1 - currentCenter.x0) / (currentCenter.x1 - currentCenter.x0))) * 2 * Math.PI,
+      y0: Math.max(0, d.object.y0 - currentCenter.depth),
+      y1: Math.max(0, d.object.y1 - currentCenter.depth)
+    }
+  })
+
+  // Transition the data on all arcs, even the ones that aren’t visible,
+  // so that if this transition is interrupted, entering arcs will start
+  // the next transition from the desired position.
+  const mainTransition = d3.select('#js_chart').transition('main').duration(duration)
+  const markingTransition = d3.select('#js_chart').transition('marking').duration(200)
+
+  arcsMerge.transition(mainTransition)
+    .tween('data', d => {
+      const i = d3.interpolate(d.object.current, d.object.target)
+      return t => { d.object.current = i(t) }
+    })
+    .filter(function (d) {
+      return +this.getAttribute('fill-opacity') || arcVisible(d.object.target)
+    })
+    .attrTween('d', d => () => arc(d.object.current))
+
+  arcsMerge.transition(markingTransition)
+    .attr('fill-opacity', d => arcOpacity(d.object, d.object.target))
+
+  // Transition label paths (not that object.current is 'tweened' by the arc transition)
+  clipPathsMerge.transition(mainTransition)
+    .select('path')
+    .attrTween('d', d => () => arc(d.object.current))
+
+  // Transition for labels
+  labelMerge.transition(mainTransition)
+    .select('text')
+    .attr('fill-opacity', d => labelVisible(d.object.target) ? 1 : 0)
+    .attr('transform', d => labelTransform(d.object.target))
     .style('font-weight', d => d.object.marked ? 'bold' : '')
 }
 
@@ -428,7 +440,7 @@ function clicked (p) {
   currentEvent.stopPropagation()
   // check for marking or zoom
   if (zoomMode === 'mark') {
-    var markData = { markMode: JSVizHelper.getMarkMode(currentEvent), indexSet: p.indices }
+    var markData = { markMode: JSVizHelper.getMarkMode(currentEvent), indexSet: p.object.indices }
     window.markIndices(markData)
   } else {
     // Grab the actual object
@@ -439,52 +451,7 @@ function clicked (p) {
     }
     // zooming only available for arcs with children (or center if all children have been filtered out)
     if (p.children) {
-      currentCenterPath = p.path
-
-      // Update 'target' on all data
-      D3data.forEach(d => {
-        d.object.target = {
-          x0: Math.max(0, Math.min(1, (d.object.x0 - p.x0) / (p.x1 - p.x0))) * 2 * Math.PI,
-          x1: Math.max(0, Math.min(1, (d.object.x1 - p.x0) / (p.x1 - p.x0))) * 2 * Math.PI,
-          y0: Math.max(0, d.object.y0 - p.depth),
-          y1: Math.max(0, d.object.y1 - p.depth)
-        }
-      })
-
-      // Transition the data on all arcs, even the ones that aren’t visible,
-      // so that if this transition is interrupted, entering arcs will start
-      // the next transition from the desired position.
-      const clickTransition = d3.select('#js_chart').transition('main').duration(500)
-      clipPathsMerge.transition(clickTransition)
-        .select('path')
-        // .tween('data', d => {
-        //   const i = d3.interpolate(d.object.current, d.object.target)
-        //   return t => { d.object.current = i(t) }
-        // })
-        .attrTween('d', d => () => arc(d.object.current))
-
-      arcsMerge.transition(clickTransition)
-        .tween('data', d => {
-          const i = d3.interpolate(d.object.current, d.object.target)
-          return t => { d.object.current = i(t) }
-        })
-        .filter(function (d) {
-          return +this.getAttribute('fill-opacity') || arcVisible(d.object.target)
-        })
-        .attr('fill-opacity', d => arcOpacity(d.object, d.object.target))
-        .attrTween('d', d => () => arc(d.object.current))
-
-      // Transition for labels when we click
-      labelMerge.transition(clickTransition)
-        .select('text')
-        .attr('fill-opacity', d => {
-          // console.info(d.path, +labelVisible(d.object.target), d)
-          // console.info(d.path, d)
-          // console.info(d)
-          return labelVisible(d.object.target) ? 1 : 0
-        })
-        .attr('transform', d =>
-          labelTransform(d.object.target))
+      transitionEverything(p, 500)
     }
   }
 }
@@ -614,8 +581,8 @@ function markLasso (markMode, rectangle) {
   // Search all object data to check if arcs within the rectangle
   var markData = { markMode: markMode, indexSet: [] }
   arcG.selectAll('path').each(function (d) {
-    if ((d.current.y1 > 0) && arcInside(d.current.x0, d.current.x1, d.current.y0) && arcInside(d.current.x0, d.current.x1, d.current.y1)) {
-      markData.indexSet = markData.indexSet.concat(d.indices)
+    if ((d.object.current.y1 > 0) && arcInside(d.object.current.x0, d.object.current.x1, d.object.current.y0) && arcInside(d.object.current.x0, d.object.current.x1, d.object.current.y1)) {
+      markData.indexSet = markData.indexSet.concat(d.object.indices)
     }
   })
 
