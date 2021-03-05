@@ -40,6 +40,7 @@ var arc
 var defaultConfig = {
   valueFormat: ',d',
   allowZoom: true,
+  showValueOnLabel: false,
   levelsVisible: 3
 }
 
@@ -61,6 +62,11 @@ JSVizHelper.SetupViz({
     '<p>Format strings use D3 format - see <a href="https://github.com/d3/d3-format">d3-format documentation</a></p>'
   ],
   configOptions: [
+    {
+      caption: 'Show value on label?',
+      type: 'checkbox',
+      name: 'showValueOnLabel'
+    },
     {
       caption: 'Value format string',
       type: 'text',
@@ -144,7 +150,8 @@ function firstTimeSetup (data, config) {
     'A Sunburst chart is a multilevel pie chart used to represent the proportion of different values found at each level in a hierarchy.<br/>' +
     '<span id="zoomInstructions">The Sunburst chart has two modes, which can be selected using the Mode button. In zoom mode ' +
     'clicking on a segment will drill in to show details of that segment and its children, ' +
-    'whereas in mark mode clicking on a segment will mark that segment and its children.<br/>' +
+    'whereas in mark mode clicking on a segment will mark that segment and its children. ' +
+    'Once zoomed in, you can zoom out again by clicking on the central circle. ' +
     'Pie segments are shown in a darker colour when child segments are available, thus indicating where zooming is available. </span>'
 
   $('<p>')
@@ -175,9 +182,11 @@ function firstTimeSetup (data, config) {
       if (zoomMode === 'zoom') {
         zoomMode = 'mark'
         $(this).button('option', 'label', 'Mode: mark')
+        $('.zoomable').css('cursor', '')
       } else {
         zoomMode = 'zoom'
         $(this).button('option', 'label', 'Mode: zoom')
+        $('.zoomable').css('cursor', 'pointer')
       }
     })
 }
@@ -186,10 +195,12 @@ function enableDisableZoom (enabled) {
   if (enabled) {
     modeButton.show()
     $('#zoomInstructions').css('display', '')
+    $('.zoomable').css('cursor', 'pointer')
   } else {
     zoomMode = 'mark'
     modeButton.hide()
     $('#zoomInstructions').css('display', 'none')
+    $('.zoomable').css('cursor', '')
   }
 }
 
@@ -199,9 +210,6 @@ function render (data, config) {
 
   // Update the default fill color (particularly for text) in case theme changes
   svg.attr('fill', $('body').css('color'))
-
-  // Enable or disable zoom
-  enableDisableZoom(config.allowZoom)
 
   // Convert the data into d3 hierarchical form
   // We assume that the last column in the data is the numeric value to use for the size
@@ -348,6 +356,8 @@ function render (data, config) {
 
   arcsMerge = arcs.merge(arcsEnter)
 
+  arcsMerge.classed('zoomable', d => (d.object.children))
+
   // Tooltips (no transition)
   arcs.select('title')
     .merge(arcsEnterTitle)
@@ -383,9 +393,13 @@ function render (data, config) {
   // Now we can use Text with a transform - otherwise the transform applies to the clip path and nothing appears
   labelEnter.append('text')
     .attr('dy', '0.35em')
-    .text(d => d.object.name)
 
   labelMerge = label.merge(labelEnter)
+
+  labelMerge.select('text').text(d => d.object.name + (config.showValueOnLabel ? (' (' + format(d.object.value) + ')') : ''))
+
+  // Enable or disable zoom (do this last so that we can us zoomable class)
+  enableDisableZoom(config.allowZoom)
 
   transitionEverything(currentCenter, 1000)
 }

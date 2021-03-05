@@ -1,6 +1,6 @@
 {
   "name": "jsviz-visualisations",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "A set of custom visualisations for Spotfire using JSViz",
   "dependencies": {
     "colorjoe": "^4.1.1",
