@@ -62,7 +62,7 @@ A Sankey chart is a type of flow diagram, in which the width of the arrows is sh
 
 ![](/images/sankey.gif)
 
-A Sunburst chart shows hierachical data in a multi-level Pie chart. The chart can be configured to show all levels of the hierarchy, or to allow a user to zoom up and down the hierarchy.
+A Sunburst chart shows hierarchical data in a multi-level Pie chart. The chart can be configured to show all levels of the hierarchy, or to allow a user to zoom up and down the hierarchy.
 [This link](https://pete-thompson.github.io/spotfire-visuals/Test%20Harness/Tester-Sunburst.html) opens a live 'demo' using our test harness (i.e. without Spotfire).
 
 ![](/images/sunburst.gif)
