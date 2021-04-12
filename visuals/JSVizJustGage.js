@@ -34,7 +34,7 @@ var defaultConfig = {
   reverse: false,
   hideMinMax: false,
   gaugeWidthScale: 1,
-  hideInnerShadow: false,
+  showInnerShadow: true,
   shadowOpacity: 0.2,
   shadowSize: 5,
   shadowVerticalOffset: 3,
@@ -261,9 +261,9 @@ JSVizHelper.SetupViz({
     },
     {
       tab: 'Gauge style',
-      caption: 'Hide inner shadow (hideInnerShadow)',
+      caption: 'Show inner shadow (showInnerShadow)',
       type: 'checkbox',
-      name: 'hideInnerShadow'
+      name: 'showInnerShadow'
     },
     {
       tab: 'Gauge style',
@@ -275,7 +275,7 @@ JSVizHelper.SetupViz({
         max: 1,
         step: 0.1
       },
-      disabledIfChecked: 'hideInnerShadow'
+      enabledIfChecked: 'showInnerShadow'
     },
     {
       tab: 'Gauge style',
@@ -287,7 +287,7 @@ JSVizHelper.SetupViz({
         max: 50,
         step: 1
       },
-      disabledIfChecked: 'hideInnerShadow'
+      enabledIfChecked: 'showInnerShadow'
     },
     {
       tab: 'Gauge style',
@@ -299,7 +299,7 @@ JSVizHelper.SetupViz({
         max: 50,
         step: 1
       },
-      disabledIfChecked: 'hideInnerShadow'
+      enabledIfChecked: 'showInnerShadow'
     },
     {
       tab: 'Gauge style',
